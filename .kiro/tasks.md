@@ -30,87 +30,87 @@
 
 - [x] 2.1 Build landing page (SSR, public, Ivory & Gold theme showcase)
 - [x] 2.2 Build customer registration form with Zod validation
-- [~] 2.3 Build vendor registration form (business name, city, categories)
-- [~] 2.4 Build login form (email or phone + password)
-- [~] 2.5 Build OTP verification screen (6-digit input, countdown timer, resend)
-- [~] 2.6 Implement JWT token storage in memory (not localStorage)
-- [~] 2.7 Implement refresh token flow (httpOnly cookie auto-refresh on 401)
-- [~] 2.8 Build policy acceptance checkbox on registration
-- [~] 2.9 Build admin login with TOTP MFA field
-- [~] 2.10 Create auth layout (centered card, no sidebar)
-- [~] 2.11 Implement redirect after login based on role
-- [~] 2.12 Build unauthorized page
+- [x] 2.3 Build vendor registration form (business name, city, categories)
+- [x] 2.4 Build login form (email or phone + password)
+- [x] 2.5 Build OTP verification screen (6-digit input, countdown timer, resend)
+- [x] 2.6 Implement JWT token storage in memory (not localStorage)
+- [x] 2.7 Implement refresh token flow (httpOnly cookie auto-refresh on 401)
+- [x] 2.8 Build policy acceptance checkbox on registration
+- [x] 2.9 Build admin login with TOTP MFA field
+- [x] 2.10 Create auth layout (centered card, no sidebar)
+- [x] 2.11 Implement redirect after login based on role
+- [x] 2.12 Build unauthorized page
 - [~] 2.13 Write unit tests for auth forms and store
-- [~] 2.14 Write Playwright E2E test: register → verify OTP → login → dashboard
+- [ ] 2.14 Write Playwright E2E test: register → verify OTP → login → dashboard
 
 ---
 
 ## Sprint 3 — Customer Dashboard & Project Creation (Weeks 5–6)
 
-- [~] 3.1 Build customer dashboard with project list and stats cards
-- [~] 3.2 Build `ProjectCard` component with status badge
-- [~] 3.3 Build `ProjectStatusBadge` (DRAFT/BIDDING_OPEN/VENDOR_SELECTED/etc.)
-- [~] 3.4 Build project creation wizard shell (`WizardShell` with step indicator)
-- [~] 3.5 Build Step 1: Space type selection (icon grid)
-- [~] 3.6 Build Step 2: Title + city + pincode
-- [~] 3.7 Build Step 3: Room dimensions (add/remove rooms, L×W×H inputs)
-- [~] 3.8 Build Step 4: Floor plan upload (react-dropzone, S3 pre-signed URL)
-- [~] 3.9 Build Step 5: Path choice — "Generate AI Designs" vs "Skip to Bidding"
-- [~] 3.10 Build Step 6: Budget range + flexibility + timeline + priority mode
-- [~] 3.11 Build Step 7: Review + Publish (validates all minimum fields)
-- [~] 3.12 Implement wizard state persistence (save draft on each step)
-- [~] 3.13 Build project detail overview page
-- [~] 3.14 Implement TanStack Query hooks for project CRUD
-- [~] 3.15 Write unit tests for wizard validation logic
+- [x] 3.1 Build customer dashboard with project list and stats cards
+- [x] 3.2 Build `ProjectCard` component with status badge
+- [x] 3.3 Build `ProjectStatusBadge` (DRAFT/BIDDING_OPEN/VENDOR_SELECTED/etc.)
+- [x] 3.4 Build project creation wizard shell (`WizardShell` with step indicator)
+- [x] 3.5 Build Step 1: Space type selection (icon grid)
+- [x] 3.6 Build Step 2: Title + city + pincode
+- [x] 3.7 Build Step 3: Room dimensions (add/remove rooms, L×W×H inputs)
+- [x] 3.8 Build Step 4: Floor plan upload (react-dropzone, S3 pre-signed URL)
+- [x] 3.9 Build Step 5: Path choice — "Generate AI Designs" vs "Skip to Bidding"
+- [x] 3.10 Build Step 6: Budget range + flexibility + timeline + priority mode
+- [ ] 3.11 Build Step 7: Review + Publish (validates all minimum fields)
+- [x] 3.12 Implement wizard state persistence (save draft on each step)
+- [x] 3.13 Build project detail overview page
+- [x] 3.14 Implement TanStack Query hooks for project CRUD
+- [x] 3.15 Write unit tests for wizard validation logic
 
 ---
 
 ## Sprint 4 — AI Design + Bidding Room (Weeks 7–8)
 
-- [~] 4.1 Build AI design generation screen (theme text + filters)
-- [~] 4.2 Build `GenerationProgress` component (WebSocket real-time progress bar)
-- [~] 4.3 Build `DesignGallery` (2-3 design cards, select one)
-- [~] 4.4 Build design lock confirmation dialog (irreversible warning)
-- [~] 4.5 Build `BiddingRoomTable` (anonymous bids, sortable columns)
-- [~] 4.6 Build `BidRow` component (anonymous label, quote, timeline, material, status)
-- [~] 4.7 Build `VendorProfileCard` modal (portfolio gallery, rating, bio, trust signals)
-- [~] 4.8 Build `TrustSignals` section (5 platform benefits, always shown)
-- [~] 4.9 Implement shortlist bid action
-- [~] 4.10 Implement select vendor flow (confirmation dialog → reveals identity)
-- [~] 4.11 Build bidding room expiry countdown
-- [~] 4.12 Build vendor browse projects page (filter by city, budget, category)
-- [~] 4.13 Build `BidSubmitForm` (vendor side)
-- [~] 4.14 Build My Bids list (vendor side)
-- [~] 4.15 Enforce anonymity: verify vendorId never appears in bidding room UI
+- [x] 4.1 Build AI design generation screen (theme text + filters)
+- [x] 4.2 Build `GenerationProgress` component (WebSocket real-time progress bar)
+- [x] 4.3 Build `DesignGallery` (2-3 design cards, select one)
+- [x] 4.4 Build design lock confirmation dialog (irreversible warning)
+- [x] 4.5 Build `BiddingRoomTable` (anonymous bids, sortable columns)
+- [x] 4.6 Build `BidRow` component (anonymous label, quote, timeline, material, status)
+- [x] 4.7 Build `VendorProfileCard` modal (portfolio gallery, rating, bio, trust signals)
+- [x] 4.8 Build `TrustSignals` section (5 platform benefits, always shown)
+- [x] 4.9 Implement shortlist bid action
+- [x] 4.10 Implement select vendor flow (confirmation dialog → reveals identity)
+- [x] 4.11 Build bidding room expiry countdown
+- [x] 4.12 Build vendor browse projects page (filter by city, budget, category)
+- [x] 4.13 Build `BidSubmitForm` (vendor side)
+- [x] 4.14 Build My Bids list (vendor side)
+- [ ] 4.15 Enforce anonymity: verify vendorId never appears in bidding room UI
 - [~] 4.16 Write unit tests for anonymity enforcement
 
 ---
 
 ## Sprint 5 — Negotiation + Milestones (Weeks 9–10)
 
-- [~] 5.1 Build `NegotiationChat` component (message thread)
-- [~] 5.2 Build `MessageBubble` (customer vs vendor styling)
-- [~] 5.3 Build `MaskedMessageWarning` badge (⚠️ [PHONE REMOVED])
-- [~] 5.4 Build `ProposalCard` (revised quote, timeline, material level)
-- [~] 5.5 Build proposal Accept / Counter / Decline actions
-- [~] 5.6 Build "Confirm & Proceed to Milestones" button (both parties)
-- [~] 5.7 Build `MilestoneList` with percentage and amount display
-- [~] 5.8 Build `MilestoneCard` with `EscrowStatusBadge`
-- [~] 5.9 Build milestone creation form (name, description, percentage)
-- [~] 5.10 Build real-time percentage total validator (must equal 100%)
-- [~] 5.11 Build "Lock All Milestones" confirmation flow
-- [~] 5.12 Build milestone detail page (evidence gallery, completion notes)
-- [~] 5.13 Build `MilestoneApprovalActions` (Approve / Request Changes / Raise Dispute)
-- [~] 5.14 Build dispute raise form (reason + description)
-- [~] 5.15 Build `EvidenceUploader` (drag-drop, multi-file, S3 pre-signed)
-- [~] 5.16 Build `EvidenceGallery` (image grid with lightbox)
-- [~] 5.17 Implement WebSocket for milestone status updates
+- [x] 5.1 Build `NegotiationChat` component (message thread)
+- [x] 5.2 Build `MessageBubble` (customer vs vendor styling)
+- [x] 5.3 Build `MaskedMessageWarning` badge (⚠️ [PHONE REMOVED])
+- [x] 5.4 Build `ProposalCard` (revised quote, timeline, material level)
+- [x] 5.5 Build proposal Accept / Counter / Decline actions
+- [x] 5.6 Build "Confirm & Proceed to Milestones" button (both parties)
+- [x] 5.7 Build `MilestoneList` with percentage and amount display
+- [x] 5.8 Build `MilestoneCard` with `EscrowStatusBadge`
+- [x] 5.9 Build milestone creation form (name, description, percentage)
+- [x] 5.10 Build real-time percentage total validator (must equal 100%)
+- [x] 5.11 Build "Lock All Milestones" confirmation flow
+- [x] 5.12 Build milestone detail page (evidence gallery, completion notes)
+- [x] 5.13 Build `MilestoneApprovalActions` (Approve / Request Changes / Raise Dispute)
+- [ ] 5.14 Build dispute raise form (reason + description)
+- [x] 5.15 Build `EvidenceUploader` (drag-drop, multi-file, S3 pre-signed)
+- [x] 5.16 Build `EvidenceGallery` (image grid with lightbox)
+- [x] 5.17 Implement WebSocket for milestone status updates
 
 ---
 
 ## Sprint 6 — BOQ Editor + Payments (Weeks 11–12)
 
-- [~] 6.1 Build `BoqEditor` shell (vendor side — create, edit, submit)
+- [ ] 6.1 Build `BoqEditor` shell (vendor side — create, edit, submit)
 - [~] 6.2 Build `BoqRoomSection` (collapsible room group)
 - [~] 6.3 Build `BoqItemRow` (inline editing, auto-calculated amount)
 - [~] 6.4 Build `BoqSummary` (room totals, grand total)
