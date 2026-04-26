@@ -12,6 +12,8 @@ import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { TrustSection } from '@/components/landing/TrustSection';
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
 import { CTASection } from '@/components/landing/CTASection';
+import { ExitIntentPopup } from '@/components/public/ExitIntentPopup';
+import { SmartCtaBanner } from '@/components/public/SmartCtaBanner';
 
 export const metadata: Metadata = {
   title: 'Decoqo — Design Any Space. Bid Anonymously. Execute with Trust.',
@@ -54,6 +56,8 @@ export default function LandingPage() {
       </main>
 
       <PublicFooter />
+      <ExitIntentPopup />
+      <SmartCtaBanner />
     </div>
   );
 }

@@ -9,7 +9,13 @@
  * CUST-38: Shortlist button on each bid row
  * CUST-40: Bidding room expiry countdown
  * CUST-41: Total bid count displayed prominently
- * CUST-15: Enforce anonymity — vendorId never appears in UI
+ * CUST-15: Enforce anonymity — vendorId NEVER appears in UI
+ *
+ * Anonymity contract:
+ *  - All bid rows receive SafeBid (vendorId stripped via toSafeBid)
+ *  - VendorProfileCard receives SafeBid — it fetches the profile internally
+ *    using the bid.id → server resolves vendorId server-side
+ *  - assertNoVendorIdInBids() runs in dev to catch regressions
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -19,8 +25,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { VendorProfileCard } from '@/components/bidding/VendorProfileCard';
 import { TrustSignals } from '@/components/bidding/TrustSignals';
 import { useBiddingRoom, useShortlistBid, useSelectVendor } from '@/lib/api/bidding';
+import { toSafeBids, assertNoVendorIdInBids, type SafeBid } from '@/lib/utils/anonymity';
 import { formatInr } from '@/lib/utils/money';
-import type { Bid } from '@/types/bidding.types';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -64,13 +70,13 @@ const MATERIAL_COLORS: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// BidRow
+// BidRow — accepts SafeBid only (no vendorId)
 // ---------------------------------------------------------------------------
 
 interface BidRowProps {
-  bid: Bid;
-  onViewProfile: (bid: Bid) => void;
-  onShortlist: (bid: Bid) => void;
+  bid: SafeBid;
+  onViewProfile: (bid: SafeBid) => void;
+  onShortlist: (bid: SafeBid) => void;
   isShortlisting: boolean;
 }
 
@@ -80,7 +86,7 @@ function BidRow({ bid, onViewProfile, onShortlist, isShortlisting }: BidRowProps
       className="border-b border-border/50 transition-colors hover:bg-muted/30 cursor-pointer"
       onClick={() => onViewProfile(bid)}
     >
-      {/* Anonymous label */}
+      {/* Anonymous label — the ONLY vendor identifier shown */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-accent/10 text-sm font-bold text-accent font-serif">
@@ -171,10 +177,17 @@ export function BiddingRoomTable({ projectId }: BiddingRoomTableProps) {
 
   const [sortKey, setSortKey] = useState<SortKey>('quote');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
+  // selectedBid is SafeBid — no vendorId in state
+  const [selectedBid, setSelectedBid] = useState<SafeBid | null>(null);
   const [shortlistingId, setShortlistingId] = useState<string | null>(null);
 
   const countdown = useCountdown(room?.expiresAt ?? new Date(Date.now() + 30 * 86_400_000).toISOString());
+
+  // Convert raw bids → SafeBids at the boundary (single enforcement point)
+  const safeBids: SafeBid[] = toSafeBids(room?.bids ?? []);
+
+  // Dev-only assertion: crash loudly if vendorId leaks into the safe list
+  assertNoVendorIdInBids(safeBids);
 
   const handleSort = useCallback((key: SortKey) => {
     if (sortKey === key) {
@@ -185,7 +198,7 @@ export function BiddingRoomTable({ projectId }: BiddingRoomTableProps) {
     }
   }, [sortKey]);
 
-  const sortedBids = [...(room?.bids ?? [])].sort((a, b) => {
+  const sortedBids = [...safeBids].sort((a, b) => {
     let cmp = 0;
     if (sortKey === 'quote') cmp = a.quotePaise - b.quotePaise;
     else if (sortKey === 'timeline') cmp = a.timelineWeeks - b.timelineWeeks;
@@ -193,7 +206,7 @@ export function BiddingRoomTable({ projectId }: BiddingRoomTableProps) {
     return sortDir === 'asc' ? cmp : -cmp;
   });
 
-  const handleShortlist = async (bid: Bid) => {
+  const handleShortlist = async (bid: SafeBid) => {
     setShortlistingId(bid.id);
     try {
       await shortlistMutation.mutateAsync({ bidId: bid.id, projectId });
@@ -202,7 +215,8 @@ export function BiddingRoomTable({ projectId }: BiddingRoomTableProps) {
     }
   };
 
-  const handleSelectVendor = async (bid: Bid) => {
+  // Select vendor: VendorProfileCard resolves vendorId server-side via bid.id
+  const handleSelectVendor = async (bid: SafeBid) => {
     await selectMutation.mutateAsync({ projectId, bidId: bid.id });
     setSelectedBid(null);
   };
@@ -327,7 +341,7 @@ export function BiddingRoomTable({ projectId }: BiddingRoomTableProps) {
         <TrustSignals />
       </div>
 
-      {/* Vendor profile modal */}
+      {/* Vendor profile modal — receives SafeBid, fetches profile by bid.id */}
       {selectedBid && (
         <VendorProfileCard
           bid={selectedBid}

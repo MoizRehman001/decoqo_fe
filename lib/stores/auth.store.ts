@@ -124,7 +124,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true });
 
     try {
-      await get().refreshToken();
+      const refreshed = await get().refreshToken();
+      // After a successful token refresh, hydrate the user profile
+      if (refreshed && !get().user) {
+        try {
+          const { default: apiClient } = await import('@/lib/api/client');
+          const user = await apiClient.get('/auth/me') as import('@/types/api.types').AuthUser;
+          set({ user });
+        } catch {
+          // Non-fatal — user will be hydrated on next API call
+        }
+      }
     } catch {
       // Silently swallow errors — the user simply starts unauthenticated.
     } finally {

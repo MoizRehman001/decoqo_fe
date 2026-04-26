@@ -12,7 +12,7 @@ import { ChevronLeft } from 'lucide-react';
 import { DesignGenerator } from '@/components/ai-design/DesignGenerator';
 import { DesignGallery } from '@/components/ai-design/DesignGallery';
 import { useAiDesigns } from '@/lib/api/bidding';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from 'boneyard-js/react';
 import type { AiDesign } from '@/types/bidding.types';
 
 export default function ProjectDesignPage() {
@@ -48,26 +48,30 @@ export default function ProjectDesignPage() {
       </div>
 
       <div className="neu-card-3d rounded-2xl p-6">
-        {isLoading ? (
+        <Skeleton name="ai-design-studio" loading={isLoading} animate="shimmer" transition={300} fixture={
           <div className="space-y-4">
-            <Skeleton className="h-6 w-1/3" />
-            <Skeleton className="h-24 w-full rounded-xl" />
+            <div className="h-6 w-1/3 rounded bg-muted animate-pulse" />
+            <div className="h-24 w-full rounded-xl bg-muted animate-pulse" />
             <div className="grid grid-cols-3 gap-3">
-              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="aspect-video rounded-xl" />)}
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="aspect-video rounded-xl bg-muted animate-pulse" />
+              ))}
             </div>
           </div>
-        ) : activeDesign?.status === 'COMPLETED' ? (
-          <DesignGallery
-            design={activeDesign}
-            projectId={projectId}
-            onLocked={handleLocked}
-          />
-        ) : (
-          <DesignGenerator
-            projectId={projectId}
-            onDesignsReady={setGeneratedDesign}
-          />
-        )}
+        }>
+          {activeDesign?.status === 'COMPLETED' ? (
+            <DesignGallery
+              design={activeDesign}
+              projectId={projectId}
+              onLocked={handleLocked}
+            />
+          ) : (
+            <DesignGenerator
+              projectId={projectId}
+              onDesignsReady={setGeneratedDesign}
+            />
+          )}
+        </Skeleton>
       </div>
     </div>
   );

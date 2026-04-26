@@ -118,3 +118,31 @@ export interface PaymentHistoryItem {
   razorpayPaymentId?: string;
   createdAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// BOQ API Payloads
+// ---------------------------------------------------------------------------
+
+export interface AddBoqItemPayload {
+  boqId: string;
+  room: string;
+  category: string;
+  description: string;
+  material: string;
+  brand: string;
+  quantity: number;
+  unit: BoqItemUnit;
+  ratePaise: number;
+  milestoneId?: string;
+  notes?: string;
+}
+
+export interface UpdateBoqItemPayload {
+  itemId: string;
+  boqId: string;
+  quantity?: number;
+  ratePaise?: number;
+  description?: string;
+  material?: string;
+  brand?: string;
+}

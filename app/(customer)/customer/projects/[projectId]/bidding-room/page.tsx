@@ -11,7 +11,7 @@ import { ChevronLeft } from 'lucide-react';
 import { BiddingRoomTable } from '@/components/bidding/BiddingRoomTable';
 import { useProject } from '@/lib/api/projects';
 import { ProjectStatusBadge } from '@/components/project/ProjectStatusBadge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from 'boneyard-js/react';
 
 export default function BiddingRoomPage() {
   const params = useParams<{ projectId: string }>();
@@ -31,12 +31,12 @@ export default function BiddingRoomPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          {isLoading ? (
+          <Skeleton name="bidding-room-header" loading={isLoading} animate="shimmer" transition={300} fixture={
             <div className="space-y-2">
-              <Skeleton className="h-7 w-64" />
-              <Skeleton className="h-4 w-40" />
+              <div className="h-7 w-64 rounded bg-muted animate-pulse" />
+              <div className="h-4 w-40 rounded bg-muted animate-pulse" />
             </div>
-          ) : (
+          }>
             <>
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="font-serif text-2xl font-semibold text-foreground">
@@ -48,7 +48,7 @@ export default function BiddingRoomPage() {
                 {project?.title} · {project?.city}
               </p>
             </>
-          )}
+          </Skeleton>
         </div>
       </div>
 

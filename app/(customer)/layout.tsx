@@ -1,18 +1,18 @@
 'use client';
 
-/**
- * Customer portal layout — sidebar + topbar shell.
- */
-
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Topbar } from '@/components/layout/Topbar';
 import { useAuthStore } from '@/lib/stores/auth.store';
+import { useAuthInitializer } from '@/components/auth/AuthInitializer';
 
 export default function CustomerLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, logout } = useAuthStore();
+
+  // Restore access token from httpOnly cookie on every page load
+  useAuthInitializer();
 
   const handleLogout = () => {
     logout();
@@ -22,15 +22,13 @@ export default function CustomerLayout({ children }: { children: ReactNode }) {
   };
 
   const topbarUser = user
-    ? { name: user.name, email: user.email, role: user.role }
+    ? { name: user.name, email: user.email ?? '', role: user.role }
     : undefined;
 
   return (
     <div className="min-h-screen bg-background">
       <Sidebar variant="customer" onLogout={handleLogout} />
       <Topbar user={topbarUser} onLogout={handleLogout} />
-
-      {/* Main content — offset for sidebar (lg:pl-60) and topbar (pt-16) */}
       <div className="pt-16 lg:pl-60">
         <main className="min-h-[calc(100vh-4rem)] p-4 lg:p-6">
           {children}

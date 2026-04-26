@@ -777,6 +777,21 @@ export const mockBiddingApi = {
     };
   },
 
+  /**
+   * Fetch anonymized vendor profile by bid ID.
+   * The server resolves vendorId internally — the client never needs to know it.
+   * This is the safe endpoint for the bidding room UI.
+   */
+  getVendorProfileByBidId: async (bidId: string): Promise<VendorProfile> => {
+    await randomDelay(300, 600);
+    const bid = MOCK_BIDS.find((b) => b.id === bidId);
+    if (!bid) throw { statusCode: 404, message: 'Bid not found' };
+    const profile = MOCK_VENDOR_PROFILES.find((v) => v.id === bid.vendorId);
+    if (!profile) throw { statusCode: 404, message: 'Vendor not found' };
+    // Always return anonymized profile — name/businessName stripped
+    return { ...profile, name: null, businessName: null };
+  },
+
   shortlistBid: async (bidId: string): Promise<Bid> => {
     await randomDelay(300, 500);
     const bid = MOCK_BIDS.find((b) => b.id === bidId);
@@ -1671,3 +1686,376 @@ export const mockPaymentApi = {
 };
 
 export type { Boq, BoqItem, BoqItemUnit, Variation, VariationType, PaymentHistoryItem, AddBoqItemPayload, UpdateBoqItemPayload, RaiseVariationPayload };
+
+// ---------------------------------------------------------------------------
+// Sprint 7 — Chat + Dispute + Timeline Mock Data & APIs
+// ---------------------------------------------------------------------------
+
+import type { ChatMessage, ChatThread } from '@/types/chat.types';
+import type { TimelineEvent, ProjectRating } from '@/types/timeline.types';
+
+// ---------------------------------------------------------------------------
+// Mock Chat Messages (milestone-scoped)
+// ---------------------------------------------------------------------------
+
+const MOCK_CHAT_MESSAGES: ChatMessage[] = [
+  {
+    id: 'chat_001',
+    milestoneId: 'ms_002',
+    projectId: 'proj_003',
+    senderId: 'usr_vend_001',
+    senderRole: 'VENDOR',
+    senderName: 'Arjun Kapoor',
+    content: 'Electrical work is 80% complete. All switch points in the open office are done. Starting conference room tomorrow.',
+    flagged: false,
+    masked: false,
+    createdAt: '2025-01-19T10:00:00Z',
+  },
+  {
+    id: 'chat_002',
+    milestoneId: 'ms_002',
+    projectId: 'proj_003',
+    senderId: 'usr_cust_001',
+    senderRole: 'CUSTOMER',
+    senderName: 'Priya Sharma',
+    content: 'Great progress! Please make sure the server room gets dedicated circuits as discussed.',
+    flagged: false,
+    masked: false,
+    createdAt: '2025-01-19T10:30:00Z',
+  },
+  {
+    id: 'chat_003',
+    milestoneId: 'ms_002',
+    projectId: 'proj_003',
+    senderId: 'usr_vend_001',
+    senderRole: 'VENDOR',
+    senderName: 'Arjun Kapoor',
+    content: 'Confirmed. Server room will have 3 dedicated 32A circuits. Plumbing for the pantry is also complete. Call me on [PHONE REMOVED] if you want to do a site visit.',
+    flagged: true,
+    masked: true,
+    createdAt: '2025-01-19T11:00:00Z',
+  },
+  {
+    id: 'chat_004',
+    milestoneId: 'ms_002',
+    projectId: 'proj_003',
+    senderId: 'usr_cust_001',
+    senderRole: 'CUSTOMER',
+    senderName: 'Priya Sharma',
+    content: 'I will visit on Friday. Please have the inspection checklist ready.',
+    flagged: false,
+    masked: false,
+    createdAt: '2025-01-19T11:30:00Z',
+  },
+  {
+    id: 'chat_005',
+    milestoneId: 'ms_003',
+    projectId: 'proj_003',
+    senderId: 'usr_vend_001',
+    senderRole: 'VENDOR',
+    senderName: 'Arjun Kapoor',
+    content: 'False ceiling work has started. Gypsum boards are being installed in the open office area.',
+    flagged: false,
+    masked: false,
+    createdAt: '2025-01-21T09:00:00Z',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Mock Timeline Events
+// ---------------------------------------------------------------------------
+
+const MOCK_TIMELINE_EVENTS: TimelineEvent[] = [
+  {
+    id: 'tl_001',
+    projectId: 'proj_003',
+    type: 'PROJECT_CREATED',
+    title: 'Project Created',
+    description: 'Office Interior — Cyber City project was created.',
+    actor: 'Priya Sharma',
+    actorRole: 'CUSTOMER',
+    createdAt: '2024-12-01T08:00:00Z',
+  },
+  {
+    id: 'tl_002',
+    projectId: 'proj_003',
+    type: 'PROJECT_PUBLISHED',
+    title: 'Project Published',
+    description: 'Project opened for bidding. Vendors can now submit bids.',
+    actor: 'Priya Sharma',
+    actorRole: 'CUSTOMER',
+    createdAt: '2024-12-01T08:30:00Z',
+  },
+  {
+    id: 'tl_003',
+    projectId: 'proj_003',
+    type: 'BID_RECEIVED',
+    title: '5 Bids Received',
+    description: '5 vendors submitted bids during the bidding period.',
+    actor: 'System',
+    actorRole: 'SYSTEM',
+    metadata: { bidCount: 5 },
+    createdAt: '2024-12-05T17:00:00Z',
+  },
+  {
+    id: 'tl_004',
+    projectId: 'proj_003',
+    type: 'VENDOR_SELECTED',
+    title: 'Vendor Selected',
+    description: 'Arjun Interiors Pvt. Ltd. was selected as the vendor.',
+    actor: 'Priya Sharma',
+    actorRole: 'CUSTOMER',
+    createdAt: '2024-12-06T10:00:00Z',
+  },
+  {
+    id: 'tl_005',
+    projectId: 'proj_003',
+    type: 'NEGOTIATION_CONFIRMED',
+    title: 'Negotiation Confirmed',
+    description: 'Both parties confirmed the final terms. Project moving to milestones.',
+    actor: 'System',
+    actorRole: 'SYSTEM',
+    createdAt: '2024-12-07T14:00:00Z',
+  },
+  {
+    id: 'tl_006',
+    projectId: 'proj_003',
+    type: 'BOQ_SUBMITTED',
+    title: 'BOQ Submitted',
+    description: 'Vendor submitted the Bill of Quantities for review.',
+    actor: 'Arjun Kapoor',
+    actorRole: 'VENDOR',
+    metadata: { totalAmountPaise: 51200000 },
+    createdAt: '2024-12-10T10:00:00Z',
+  },
+  {
+    id: 'tl_007',
+    projectId: 'proj_003',
+    type: 'BOQ_APPROVED',
+    title: 'BOQ Approved',
+    description: 'Customer approved the Bill of Quantities.',
+    actor: 'Priya Sharma',
+    actorRole: 'CUSTOMER',
+    createdAt: '2024-12-12T14:00:00Z',
+  },
+  {
+    id: 'tl_008',
+    projectId: 'proj_003',
+    type: 'MILESTONE_LOCKED',
+    title: 'Milestones Locked',
+    description: '4 milestones locked and ready for escrow funding.',
+    actor: 'Arjun Kapoor',
+    actorRole: 'VENDOR',
+    metadata: { milestoneCount: 4 },
+    createdAt: '2024-12-12T15:00:00Z',
+  },
+  {
+    id: 'tl_009',
+    projectId: 'proj_003',
+    type: 'ESCROW_FUNDED',
+    title: 'Escrow Funded — Milestone 1',
+    description: 'Demolition & Civil Work escrow funded.',
+    actor: 'Priya Sharma',
+    actorRole: 'CUSTOMER',
+    metadata: { amountPaise: 64000000 },
+    createdAt: '2024-12-05T08:00:00Z',
+  },
+  {
+    id: 'tl_010',
+    projectId: 'proj_003',
+    type: 'MILESTONE_SUBMITTED',
+    title: 'Milestone 1 Submitted',
+    description: 'Demolition & Civil Work submitted for review.',
+    actor: 'Arjun Kapoor',
+    actorRole: 'VENDOR',
+    createdAt: '2024-12-12T17:00:00Z',
+  },
+  {
+    id: 'tl_011',
+    projectId: 'proj_003',
+    type: 'MILESTONE_APPROVED',
+    title: 'Milestone 1 Approved',
+    description: 'Demolition & Civil Work approved. Escrow released to vendor.',
+    actor: 'Priya Sharma',
+    actorRole: 'CUSTOMER',
+    metadata: { amountPaise: 64000000 },
+    createdAt: '2024-12-13T10:00:00Z',
+  },
+  {
+    id: 'tl_012',
+    projectId: 'proj_003',
+    type: 'ESCROW_FUNDED',
+    title: 'Escrow Funded — Milestone 2',
+    description: 'Electrical & Plumbing escrow funded.',
+    actor: 'Priya Sharma',
+    actorRole: 'CUSTOMER',
+    metadata: { amountPaise: 80000000 },
+    createdAt: '2024-12-14T09:00:00Z',
+  },
+  {
+    id: 'tl_013',
+    projectId: 'proj_003',
+    type: 'MILESTONE_SUBMITTED',
+    title: 'Milestone 2 Submitted',
+    description: 'Electrical & Plumbing submitted for review.',
+    actor: 'Arjun Kapoor',
+    actorRole: 'VENDOR',
+    createdAt: '2025-01-20T17:00:00Z',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Mock Ratings
+// ---------------------------------------------------------------------------
+
+const MOCK_RATINGS: ProjectRating[] = [
+  {
+    id: 'rat_001',
+    projectId: 'proj_004',
+    ratedBy: 'CUSTOMER',
+    raterName: 'Priya Sharma',
+    stars: 5,
+    comment: 'Exceptional work! The master bedroom looks stunning. Arjun and his team were professional, punctual, and delivered exactly what was promised. Highly recommend.',
+    createdAt: '2024-12-16T10:00:00Z',
+  },
+  {
+    id: 'rat_002',
+    projectId: 'proj_008',
+    ratedBy: 'CUSTOMER',
+    raterName: 'Rahul Mehta',
+    stars: 4,
+    comment: 'Very good work overall. Minor delays in the final week but the quality is excellent. Would work with them again.',
+    createdAt: '2024-12-01T14:00:00Z',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Chat Mock API
+// ---------------------------------------------------------------------------
+
+export interface SendChatMessagePayload {
+  milestoneId: string;
+  projectId: string;
+  content: string;
+  senderRole: 'CUSTOMER' | 'VENDOR';
+  senderName: string;
+  senderId: string;
+}
+
+export const mockChatApi = {
+  getThread: async (milestoneId: string): Promise<ChatThread> => {
+    await randomDelay(200, 400);
+    const messages = MOCK_CHAT_MESSAGES.filter((m) => m.milestoneId === milestoneId);
+    return {
+      milestoneId,
+      projectId: messages[0]?.projectId ?? '',
+      messages: messages.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      ),
+    };
+  },
+
+  sendMessage: async (payload: SendChatMessagePayload): Promise<ChatMessage> => {
+    await randomDelay(200, 400);
+    // Simulate contact masking
+    const phoneRegex = /[6-9]\d{9}/g;
+    const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+    let content = payload.content;
+    let flagged = false;
+    if (phoneRegex.test(content)) {
+      content = content.replace(phoneRegex, '[PHONE REMOVED]');
+      flagged = true;
+    }
+    if (emailRegex.test(content)) {
+      content = content.replace(emailRegex, '[EMAIL REMOVED]');
+      flagged = true;
+    }
+    const msg: ChatMessage = {
+      id: `chat_${generateId()}`,
+      milestoneId: payload.milestoneId,
+      projectId: payload.projectId,
+      senderId: payload.senderId,
+      senderRole: payload.senderRole,
+      senderName: payload.senderName,
+      content,
+      flagged,
+      masked: flagged,
+      createdAt: new Date().toISOString(),
+    };
+    MOCK_CHAT_MESSAGES.push(msg);
+    return msg;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Timeline Mock API
+// ---------------------------------------------------------------------------
+
+export const mockTimelineApi = {
+  getTimeline: async (projectId: string): Promise<TimelineEvent[]> => {
+    await randomDelay(300, 500);
+    return MOCK_TIMELINE_EVENTS.filter((e) => e.projectId === projectId).sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Rating Mock API
+// ---------------------------------------------------------------------------
+
+export interface SubmitRatingPayload {
+  projectId: string;
+  ratedBy: 'CUSTOMER' | 'VENDOR';
+  raterName: string;
+  stars: 1 | 2 | 3 | 4 | 5;
+  comment: string;
+}
+
+export const mockRatingApi = {
+  getRatings: async (projectId: string): Promise<ProjectRating[]> => {
+    await randomDelay(200, 400);
+    return MOCK_RATINGS.filter((r) => r.projectId === projectId);
+  },
+
+  submitRating: async (payload: SubmitRatingPayload): Promise<ProjectRating> => {
+    await randomDelay(400, 700);
+    const existing = MOCK_RATINGS.find(
+      (r) => r.projectId === payload.projectId && r.ratedBy === payload.ratedBy,
+    );
+    if (existing) {
+      throw { statusCode: 409, message: 'You have already submitted a rating for this project', code: 'DUPLICATE_RATING' };
+    }
+    const rating: ProjectRating = {
+      id: `rat_${generateId()}`,
+      projectId: payload.projectId,
+      ratedBy: payload.ratedBy,
+      raterName: payload.raterName,
+      stars: payload.stars,
+      comment: payload.comment,
+      createdAt: new Date().toISOString(),
+    };
+    MOCK_RATINGS.push(rating);
+    return rating;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Project Closure Mock API
+// ---------------------------------------------------------------------------
+
+export const mockProjectClosureApi = {
+  closeProject: async (projectId: string): Promise<import('@/types/project.types').Project> => {
+    await randomDelay(500, 800);
+    return mockProjectApi.updateProject(projectId, { status: 'COMPLETED' });
+  },
+};
+
+export type {
+  ChatMessage,
+  ChatThread,
+  TimelineEvent,
+  ProjectRating,
+  SendChatMessagePayload,
+  SubmitRatingPayload,
+};

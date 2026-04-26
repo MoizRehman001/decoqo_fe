@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useWizard } from './WizardShell';
 import { cn } from '@/lib/utils';
-import type { Room } from '@/types/project.types';
+import type { Room, DimensionUnit } from '@/types/project.types';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -25,6 +25,12 @@ const ROOM_NAMES = [
   'Other',
 ] as const;
 
+const UNIT_OPTIONS: Array<{ value: DimensionUnit; label: string }> = [
+  { value: 'ft', label: 'ft' },
+  { value: 'm', label: 'm' },
+  { value: 'cm', label: 'cm' },
+];
+
 function generateRoomId(): string {
   return `room_${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -42,20 +48,43 @@ interface RoomRowProps {
 }
 
 function RoomRow({ room, index, onUpdate, onRemove, canRemove }: RoomRowProps) {
+  const dimLabel = (axis: string) => `${axis} (${room.unit})`;
+
   return (
     <div className="rounded-xl border border-border bg-background p-4">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-foreground">Room {index + 1}</span>
-        {canRemove && (
-          <button
-            type="button"
-            onClick={() => onRemove(room.id)}
-            aria-label={`Remove room ${index + 1}`}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Unit toggle */}
+          <div className="flex rounded-lg border border-border overflow-hidden">
+            {UNIT_OPTIONS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => onUpdate(room.id, 'unit', value)}
+                className={cn(
+                  'px-2.5 py-1 text-xs font-medium transition-colors',
+                  room.unit === value
+                    ? 'bg-accent text-accent-foreground'
+                    : 'bg-background text-muted-foreground hover:bg-muted',
+                )}
+                aria-pressed={room.unit === value}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {canRemove && (
+            <button
+              type="button"
+              onClick={() => onRemove(room.id)}
+              aria-label={`Remove room ${index + 1}`}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -85,9 +114,9 @@ function RoomRow({ room, index, onUpdate, onRemove, canRemove }: RoomRowProps) {
         {/* Dimensions */}
         {(
           [
-            { field: 'lengthFt', label: 'Length (ft)' },
-            { field: 'widthFt', label: 'Width (ft)' },
-            { field: 'heightFt', label: 'Height (ft)' },
+            { field: 'length', label: dimLabel('Length') },
+            { field: 'width', label: dimLabel('Width') },
+            { field: 'height', label: dimLabel('Height') },
           ] as const
         ).map(({ field, label }) => (
           <div key={field}>
@@ -101,9 +130,8 @@ function RoomRow({ room, index, onUpdate, onRemove, canRemove }: RoomRowProps) {
               id={`room-${field}-${room.id}`}
               type="number"
               inputMode="decimal"
-              min={1}
-              max={200}
-              step={0.5}
+              min={0.1}
+              step={room.unit === 'cm' ? 1 : 0.5}
               value={room[field] || ''}
               onChange={(e) => onUpdate(room.id, field, parseFloat(e.target.value) || 0)}
               className="h-9 text-sm"
@@ -126,7 +154,7 @@ export function Step3Rooms() {
 
   const rooms = state.rooms.length > 0
     ? state.rooms
-    : [{ id: generateRoomId(), name: 'Living Room', lengthFt: 0, widthFt: 0, heightFt: 0 }];
+    : [{ id: generateRoomId(), name: 'Living Room', length: 0, width: 0, height: 0, unit: 'ft' as DimensionUnit }];
 
   const updateRoom = useCallback(
     (id: string, field: keyof Room, value: string | number) => {
@@ -140,12 +168,15 @@ export function Step3Rooms() {
   );
 
   const addRoom = useCallback(() => {
+    // Inherit unit from the last room for convenience
+    const lastUnit = rooms[rooms.length - 1]?.unit ?? 'ft';
     const newRoom: Room = {
       id: generateRoomId(),
       name: 'Bedroom',
-      lengthFt: 0,
-      widthFt: 0,
-      heightFt: 0,
+      length: 0,
+      width: 0,
+      height: 0,
+      unit: lastUnit,
     };
     dispatch({ type: 'SET_ROOMS', payload: [...rooms, newRoom] });
   }, [rooms, dispatch]);
@@ -162,7 +193,7 @@ export function Step3Rooms() {
       setError('Please add at least one room.');
       return;
     }
-    const invalid = rooms.some((r) => !r.lengthFt || !r.widthFt || !r.heightFt);
+    const invalid = rooms.some((r) => !r.length || !r.width || !r.height);
     if (invalid) {
       setError('Please fill in all room dimensions.');
       return;
@@ -178,7 +209,7 @@ export function Step3Rooms() {
           Tell us about your rooms
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Add each room with its dimensions in feet
+          Add each room with its dimensions — choose your preferred unit per room
         </p>
       </div>
 

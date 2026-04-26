@@ -41,6 +41,23 @@ export interface AiDesign {
 }
 
 // ---------------------------------------------------------------------------
+// BOQ
+// ---------------------------------------------------------------------------
+
+export interface BidBoqItem {
+  room: string;
+  category: string;
+  description: string;
+  material?: string;
+  brand?: string;
+  quantity: number;
+  unit: string;
+  rateInr: number;
+  amountInr: number;
+  notes?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Bid
 // ---------------------------------------------------------------------------
 
@@ -54,19 +71,29 @@ export interface Bid {
   /** Anonymous label shown to customer during bidding — e.g. "Vendor A" */
   anonymousLabel: string;
   quotePaise: number;
+  totalQuoteInr: number;
   timelineWeeks: number;
   materialLevel: MaterialLevel;
+  materialQualityLevel: MaterialLevel;
   scopeAssumptions: string;
+  scopeExclusions?: string;
   notes: string;
   status: BidStatus;
   isShortlisted: boolean;
   submittedAt: string;
   updatedAt: string;
+  boqItems: BidBoqItem[];
 }
 
 // ---------------------------------------------------------------------------
 // Vendor Profile (anonymized view — no PII)
 // ---------------------------------------------------------------------------
+
+export interface VendorReview {
+  score: number;
+  comment: string | null;
+  date: string;
+}
 
 export interface VendorPortfolioItem {
   id: string;
@@ -82,18 +109,24 @@ export interface VendorProfile {
   name: string | null;
   businessName: string | null;
   city: string;
+  serviceAreas: string[];
   categories: string[];
   bio: string;
   rating: number;
+  averageRating: number | null;
   reviewCount: number;
+  totalProjects: number;
   completedProjects: number;
   portfolioItems: VendorPortfolioItem[];
+  portfolioUrls: string[];
   /** KYC verified badge */
   isVerified: boolean;
   /** Years of experience */
   yearsExperience: number;
   /** Response time in hours */
   avgResponseHours: number;
+  recentReviews: VendorReview[];
+  platformTrustSignals: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -112,11 +145,23 @@ export interface BiddingRoom {
 // Bid Submit (vendor side)
 // ---------------------------------------------------------------------------
 
+export interface BidBoqItemPayload {
+  room: string;
+  category: string;
+  description: string;
+  material?: string;
+  brand?: string;
+  quantity: number;
+  unit: string;
+  rateInr: number;
+  notes?: string;
+}
+
 export interface SubmitBidPayload {
   projectId: string;
-  quotePaise: number;
   timelineWeeks: number;
-  materialLevel: MaterialLevel;
-  scopeAssumptions: string;
-  notes: string;
+  materialQualityLevel: MaterialLevel;
+  boqItems: BidBoqItemPayload[];
+  scopeExclusions?: string;
+  notes?: string;
 }

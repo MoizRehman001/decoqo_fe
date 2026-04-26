@@ -34,6 +34,8 @@ export type ProjectTimeline =
 
 export type WizardPath = 'AI_DESIGN' | 'BIDDING';
 
+export type DimensionUnit = 'ft' | 'm' | 'cm';
+
 // ---------------------------------------------------------------------------
 // Room
 // ---------------------------------------------------------------------------
@@ -41,9 +43,10 @@ export type WizardPath = 'AI_DESIGN' | 'BIDDING';
 export interface Room {
   id: string;
   name: string;
-  lengthFt: number;
-  widthFt: number;
-  heightFt: number;
+  length: number;
+  width: number;
+  height: number;
+  unit: DimensionUnit;
 }
 
 // ---------------------------------------------------------------------------
@@ -114,8 +117,8 @@ export const WIZARD_INITIAL_STATE: WizardState = {
   path: null,
   aiTheme: '',
   description: '',
-  budgetMin: 500000,
-  budgetMax: 2000000,
+  budgetMin: 0,
+  budgetMax: 0,
   budgetFlexibility: 'FLEXIBLE',
   timeline: 'FLEXIBLE',
   priority: 'QUALITY_FIRST',

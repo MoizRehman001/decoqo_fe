@@ -9,9 +9,35 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWizard, STORAGE_KEY } from './WizardShell';
-import { mockProjectApi } from '@/mock/mockData';
+import { useCreateProject, usePublishProject, useSetBudget, useAddRoom } from '@/lib/api/projects';
 import { cn } from '@/lib/utils';
 import type { SpaceType } from '@/types/project.types';
+
+// Feet → centimetres conversion
+const ftToCm = (ft: number): number => Math.round(ft * 30.48);
+
+// Map wizard timeline string to weeks number
+const TIMELINE_WEEKS: Record<string, number> = {
+  '4_WEEKS': 4,
+  '6_WEEKS': 6,
+  '8_WEEKS': 8,
+  '12_WEEKS': 12,
+  'FLEXIBLE': 16,
+};
+
+// Map wizard flexibility to backend BudgetFlexibility enum
+const FLEXIBILITY_MAP: Record<string, 'STRICT' | 'FLEXIBLE_10' | 'FLEXIBLE_15'> = {
+  'STRICT':        'STRICT',
+  'FLEXIBLE':      'FLEXIBLE_10',
+  'VERY_FLEXIBLE': 'FLEXIBLE_15',
+};
+
+// Map wizard priority to backend PriorityMode enum
+const PRIORITY_MAP: Record<string, 'BUDGET_FIRST' | 'BALANCED' | 'DESIGN_FIRST'> = {
+  'BUDGET_FIRST': 'BUDGET_FIRST',
+  'QUALITY_FIRST': 'DESIGN_FIRST',
+  'SPEED_FIRST': 'BALANCED',
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -77,8 +103,14 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 export function Step7Review() {
   const { state } = useWizard();
   const router = useRouter();
-  const [isPublishing, setIsPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const createProject = useCreateProject();
+  const setBudget = useSetBudget();
+  const addRoom = useAddRoom();
+  const publishProject = usePublishProject();
+
+  const isPublishing = createProject.isPending || setBudget.isPending || addRoom.isPending || publishProject.isPending;
 
   // Validation
   const validationErrors: string[] = [];
@@ -88,7 +120,7 @@ export function Step7Review() {
   if (!state.pincode) validationErrors.push('Pincode is required');
   if (state.rooms.length === 0) validationErrors.push('At least one room is required');
   if (!state.path) validationErrors.push('Project path is required');
-  if (state.budgetMin <= 0 || state.budgetMax <= 0) validationErrors.push('Budget range is required');
+  if (state.budgetMin < 0 || state.budgetMax <= 0) validationErrors.push('Budget range is required');
 
   const SpaceIcon = state.spaceType ? SPACE_ICONS[state.spaceType] : Home;
 
@@ -97,38 +129,63 @@ export function Step7Review() {
       setError('Please complete all required steps before publishing.');
       return;
     }
-    setIsPublishing(true);
     setError(null);
     try {
-      const project = await mockProjectApi.createProject({
+      // Step 1 — Create the project (basic fields only)
+      const project = await createProject.mutateAsync({
         title: state.title,
-        spaceType: state.spaceType!,
         city: state.city,
-        pincode: state.pincode,
-        rooms: state.rooms,
-        budgetMin: state.budgetMin,
-        budgetMax: state.budgetMax,
-        budgetFlexibility: state.budgetFlexibility,
-        timeline: state.timeline,
-        priority: state.priority,
-        description: state.description,
-        path: state.path!,
-        aiTheme: state.aiTheme || undefined,
-        floorPlanPath: state.floorPlanFile || undefined,
+        pincode: state.pincode || undefined,
+        spaceType: state.spaceType ?? undefined,
+        // Pad description to meet the 50-char minimum if needed
+        description: state.description
+          ? state.description.length >= 50
+            ? state.description
+            : state.description.padEnd(50, ' ').trim() + '.'
+          : undefined,
+        notes: state.aiTheme || undefined,
       });
 
-      // Publish it
-      const published = await mockProjectApi.publishProject(project.id);
+      // Step 2 — Set budget + timeline (required before publish)
+      await setBudget.mutateAsync({
+        projectId: project.id,
+        data: {
+          budgetMin: state.budgetMin,
+          budgetMax: state.budgetMax,
+          budgetFlexibility: FLEXIBILITY_MAP[state.budgetFlexibility] ?? 'FLEXIBLE_10',
+          timelineWeeks: TIMELINE_WEEKS[state.timeline] ?? 12,
+          priorityMode: PRIORITY_MAP[state.priority] ?? 'BALANCED',
+        },
+      });
+
+      // Step 3 — Add rooms (convert to cm based on unit; required before publish)
+      if (state.rooms.length > 0) {
+        await Promise.all(
+          state.rooms.map((room) =>
+            addRoom.mutateAsync({
+              projectId: project.id,
+              data: {
+                name: room.name,
+                unit: room.unit,
+                lengthCm: room.length,
+                widthCm: room.width,
+                heightCm: room.height,
+              },
+            }),
+          ),
+        );
+      }
+
+      // Step 4 — Publish
+      await publishProject.mutateAsync(project.id);
 
       // Clear draft from localStorage
       try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
 
-      router.push(`/customer/projects/${published.id}/bidding-room`);
+      router.push(`/customer/projects/${project.id}/bidding-room`);
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
       setError(apiErr?.message ?? 'Failed to publish project. Please try again.');
-    } finally {
-      setIsPublishing(false);
     }
   };
 
@@ -198,7 +255,7 @@ export function Step7Review() {
                 <div key={room.id} className="flex items-center justify-between py-1">
                   <span className="text-sm text-muted-foreground">{room.name}</span>
                   <span className="text-xs text-foreground">
-                    {room.lengthFt}×{room.widthFt}×{room.heightFt} ft
+                    {room.length}×{room.width}×{room.height} {room.unit}
                   </span>
                 </div>
               ))}

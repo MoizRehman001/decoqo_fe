@@ -5,10 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Topbar } from '@/components/layout/Topbar';
 import { useAuthStore } from '@/lib/stores/auth.store';
+import { useAuthInitializer } from '@/components/auth/AuthInitializer';
 
 export default function VendorLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, logout } = useAuthStore();
+
+  // Restore access token from httpOnly cookie on every page load
+  useAuthInitializer();
 
   const handleLogout = () => {
     logout();
@@ -18,7 +22,7 @@ export default function VendorLayout({ children }: { children: ReactNode }) {
   };
 
   const topbarUser = user
-    ? { name: user.name, email: user.email, role: user.role }
+    ? { name: user.name, email: user.email ?? '', role: user.role }
     : undefined;
 
   return (

@@ -34,17 +34,36 @@ export interface ApiResponse<T> {
 }
 
 // ---------------------------------------------------------------------------
-// API error shape
+// API error shape — matches backend HttpExceptionFilter output
 // ---------------------------------------------------------------------------
 
 /**
  * Structured error payload returned by the backend's HttpExceptionFilter.
+ * Shape: { success: false, error: { code, message, details } }
  */
 export interface ApiError {
-  statusCode: number;
+  /** Machine-readable error code — e.g. "MILESTONE_NOT_FUNDED", "DUPLICATE_BID" */
+  code: string;
+  /** Human-readable message */
   message: string;
-  /** Machine-readable error code (e.g. "INVALID_CREDENTIALS") */
-  code?: string;
-  /** Field-level validation errors */
-  errors?: Record<string, string[]>;
+  /** Optional field-level validation details */
+  details?: Record<string, unknown> | null;
+}
+
+// ---------------------------------------------------------------------------
+// Pagination
+// ---------------------------------------------------------------------------
+
+export interface PaginatedMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  meta: PaginatedMeta;
 }

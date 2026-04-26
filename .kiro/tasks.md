@@ -57,7 +57,7 @@
 - [x] 3.8 Build Step 4: Floor plan upload (react-dropzone, S3 pre-signed URL)
 - [x] 3.9 Build Step 5: Path choice — "Generate AI Designs" vs "Skip to Bidding"
 - [x] 3.10 Build Step 6: Budget range + flexibility + timeline + priority mode
-- [ ] 3.11 Build Step 7: Review + Publish (validates all minimum fields)
+- [x] 3.11 Build Step 7: Review + Publish (validates all minimum fields)
 - [x] 3.12 Implement wizard state persistence (save draft on each step)
 - [x] 3.13 Build project detail overview page
 - [x] 3.14 Implement TanStack Query hooks for project CRUD
@@ -81,7 +81,7 @@
 - [x] 4.12 Build vendor browse projects page (filter by city, budget, category)
 - [x] 4.13 Build `BidSubmitForm` (vendor side)
 - [x] 4.14 Build My Bids list (vendor side)
-- [ ] 4.15 Enforce anonymity: verify vendorId never appears in bidding room UI
+- [x] 4.15 Enforce anonymity: verify vendorId never appears in bidding room UI
 - [~] 4.16 Write unit tests for anonymity enforcement
 
 ---
@@ -101,7 +101,7 @@
 - [x] 5.11 Build "Lock All Milestones" confirmation flow
 - [x] 5.12 Build milestone detail page (evidence gallery, completion notes)
 - [x] 5.13 Build `MilestoneApprovalActions` (Approve / Request Changes / Raise Dispute)
-- [ ] 5.14 Build dispute raise form (reason + description)
+- [x] 5.14 Build dispute raise form (reason + description)
 - [x] 5.15 Build `EvidenceUploader` (drag-drop, multi-file, S3 pre-signed)
 - [x] 5.16 Build `EvidenceGallery` (image grid with lightbox)
 - [x] 5.17 Implement WebSocket for milestone status updates
@@ -110,52 +110,52 @@
 
 ## Sprint 6 — BOQ Editor + Payments (Weeks 11–12)
 
-- [ ] 6.1 Build `BoqEditor` shell (vendor side — create, edit, submit)
-- [~] 6.2 Build `BoqRoomSection` (collapsible room group)
-- [~] 6.3 Build `BoqItemRow` (inline editing, auto-calculated amount)
-- [~] 6.4 Build `BoqSummary` (room totals, grand total)
-- [~] 6.5 Implement optimistic updates for BOQ item changes
-- [~] 6.6 Build BOQ submit + lock flow
-- [~] 6.7 Build customer BOQ review (read-only, approve/request changes)
-- [ ] 6.8 Build `VariationDiff` (old vs new side-by-side comparison)
-- [ ] 6.9 Build variation raise form (vendor side)
-- [ ] 6.10 Build variation approve/reject (customer side)
-- [ ] 6.11 Build `BoqVersionHistory` viewer
-- [ ] 6.12 Build `EscrowFundButton` → Razorpay checkout integration
-- [ ] 6.13 Integrate Razorpay.js SDK (load script, open checkout, handle callback)
-- [ ] 6.14 Build escrow status display (PENDING/FUNDED/HELD/RELEASED/REFUNDED)
-- [ ] 6.15 Build payment history page
+- [x] 6.1 Build `BoqEditor` shell (vendor side — create, edit, submit)
+- [x] 6.2 Build `BoqRoomSection` (collapsible room group)
+- [x] 6.3 Build `BoqItemRow` (inline editing, auto-calculated amount)
+- [x] 6.4 Build `BoqSummary` (room totals, grand total)
+- [x] 6.5 Implement optimistic updates for BOQ item changes
+- [x] 6.6 Build BOQ submit + lock flow
+- [x] 6.7 Build customer BOQ review (read-only, approve/request changes)
+- [x] 6.8 Build `VariationDiff` (old vs new side-by-side comparison)
+- [x] 6.9 Build variation raise form (vendor side)
+- [x] 6.10 Build variation approve/reject (customer side)
+- [x] 6.11 Build `BoqVersionHistory` viewer
+- [x] 6.12 Build `EscrowFundButton` → Razorpay checkout integration
+- [x] 6.13 Integrate Razorpay.js SDK (load script, open checkout, handle callback)
+- [x] 6.14 Build escrow status display (PENDING/FUNDED/HELD/RELEASED/REFUNDED)
+- [x] 6.15 Build payment history page
 - [ ] 6.16 Write unit tests for BOQ calculation logic (paise arithmetic)
 
 ---
 
 ## Sprint 7 — Chat + Dispute + Timeline (Weeks 13–14)
 
-- [ ] 7.1 Build `ChatThread` component (milestone-scoped)
-- [ ] 7.2 Build `ChatMessage` with masked content display
-- [ ] 7.3 Build `ChatInput` with send button
-- [ ] 7.4 Implement WebSocket for real-time chat delivery
-- [ ] 7.5 Build dispute evidence upload (customer + vendor)
-- [ ] 7.6 Build `EvidenceBundle` viewer (admin side)
-- [ ] 7.7 Build `ProjectTimeline` (chronological event list)
-- [ ] 7.8 Build timeline event cards (color-coded by type)
-- [ ] 7.9 Build ratings submission form (1-5 stars + comment)
-- [ ] 7.10 Build project closure flow
+- [x] 7.1 Build `ChatThread` component (milestone-scoped)
+- [x] 7.2 Build `ChatMessage` with masked content display
+- [x] 7.3 Build `ChatInput` with send button
+- [x] 7.4 Implement WebSocket for real-time chat delivery
+- [x] 7.5 Build dispute evidence upload (customer + vendor)
+- [x] 7.6 Build `EvidenceBundle` viewer (admin side)
+- [x] 7.7 Build `ProjectTimeline` (chronological event list)
+- [x] 7.8 Build timeline event cards (color-coded by type)
+- [x] 7.9 Build ratings submission form (1-5 stars + comment)
+- [x] 7.10 Build project closure flow
 
 ---
 
 ## Sprint 8 — Admin Panel + Hardening (Weeks 15–16)
 
-- [ ] 8.1 Build admin dashboard (escrow value, dispute count, KYC queue)
-- [ ] 8.2 Build `EscrowMonitor` table (all escrow accounts, status, amounts)
-- [ ] 8.3 Build freeze/unfreeze escrow action with reason
-- [ ] 8.4 Build `DisputeQueue` list with SLA indicator
-- [ ] 8.5 Build dispute detail page (full evidence bundle, BOQ, design, chat)
-- [ ] 8.6 Build `DisputeDecisionForm` (Full Release / Partial / Refund + reason)
-- [ ] 8.7 Build `KycQueue` (pending vendors, approve/reject)
-- [ ] 8.8 Build user management table (ban/suspend/reinstate)
-- [ ] 8.9 Build audit log viewer with search
-- [ ] 8.10 Build vendor KYC submission form (vendor side)
+- [x] 8.1 Build admin dashboard (escrow value, dispute count, KYC queue)
+- [x] 8.2 Build `EscrowMonitor` table (all escrow accounts, status, amounts)
+- [x] 8.3 Build freeze/unfreeze escrow action with reason
+- [x] 8.4 Build `DisputeQueue` list with SLA indicator
+- [x] 8.5 Build dispute detail page (full evidence bundle, BOQ, design, chat)
+- [x] 8.6 Build `DisputeDecisionForm` (Full Release / Partial / Refund + reason)
+- [x] 8.7 Build `KycQueue` (pending vendors, approve/reject)
+- [x] 8.8 Build user management table (ban/suspend/reinstate)
+- [x] 8.9 Build audit log viewer with search
+- [x] 8.10 Build vendor KYC submission form (vendor side)
 - [ ] 8.11 Performance audit — LCP < 2.5s, bundle < 200KB
 - [ ] 8.12 Accessibility audit — WCAG 2.1 AA
 - [ ] 8.13 Write Playwright E2E: full trust loop (create → bid → BOQ → pay → approve)
@@ -194,27 +194,27 @@
 - [ ] 0.6 Build vendor portfolio showcase grid
 - [ ] 0.7 Build city coverage section (India map with active cities)
 - [ ] 0.8 Build testimonials carousel (Framer Motion)
-- [ ] 0.9 Build FAQ accordion section
+- [x] 0.9 Build FAQ accordion section
 - [ ] 0.10 Build final CTA section with email capture
 - [ ] 0.11 Build sticky header with logo, nav, "Get Started" CTA
 - [ ] 0.12 Build footer (links, social, legal)
 - [ ] 0.13 Implement scroll-triggered animations (Framer Motion `useInView`)
-- [ ] 0.14 Build `/how-it-works` detailed walkthrough page
-- [ ] 0.15 Build `/explore` public project explorer with filters
-- [ ] 0.16 Build `/vendors` public vendor portfolio gallery
-- [ ] 0.17 Build city landing pages (`/cities/bengaluru`, `/cities/mumbai`, etc.)
-- [ ] 0.18 Build space-type landing pages (`/spaces/modular-kitchen`, etc.)
-- [ ] 0.19 Build `/pricing` page
-- [ ] 0.20 Build legal pages (`/legal/terms`, `/legal/privacy`, `/legal/vendor-agreement`)
+- [x] 0.14 Build `/how-it-works` detailed walkthrough page
+- [x] 0.15 Build `/explore` public project explorer with filters
+- [x] 0.16 Build `/vendors` public vendor portfolio gallery
+- [x] 0.17 Build city landing pages (`/cities/bengaluru`, `/cities/mumbai`, etc.)
+- [x] 0.18 Build space-type landing pages (`/spaces/modular-kitchen`, etc.)
+- [x] 0.19 Build `/pricing` page
+- [x] 0.20 Build legal pages (`/legal/terms`, `/legal/privacy`, `/legal/vendor-agreement`)
 
 ### Guest Experience
 - [ ] 0.21 Implement guest project creation wizard (prompts register at Step 5)
 - [ ] 0.22 Implement guest bid form (prompts register before submit)
 - [ ] 0.23 Save guest wizard progress to localStorage, restore after login
-- [ ] 0.24 Build "Calculate your project cost" estimator tool
+- [x] 0.24 Build "Calculate your project cost" estimator tool
 - [ ] 0.25 Build interactive platform demo (animated walkthrough, no real data)
-- [ ] 0.26 Build exit intent popup ("Get 3 free AI designs")
-- [ ] 0.27 Build smart CTA slide-up banner (triggers after 30s)
+- [x] 0.26 Build exit intent popup ("Get 3 free AI designs")
+- [x] 0.27 Build smart CTA slide-up banner (triggers after 30s)
 - [ ] 0.28 Build "Save for later" localStorage persistence for guest actions
 
 ---

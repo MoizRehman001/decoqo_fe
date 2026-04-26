@@ -1,227 +1,250 @@
 'use client';
 
 /**
- * VendorProfileCard — modal showing anonymized vendor profile.
- * CUST-35: Shows city, categories, portfolio, rating, bio, trust signals
- * CUST-36: NEVER shows phone, email, website, full address
+ * VendorProfileCard — anonymized vendor profile shown to customers.
+ *
+ * Privacy contract (CUST-35 / CUST-36):
+ *   ✅ Shows: city, service areas, categories, bio, rating, reviews,
+ *             portfolio images, KYC badge, years experience, past projects
+ *   ❌ Never shows: name, phone, email, website, full address, userId
  */
 
+import { useState } from 'react';
 import Image from 'next/image';
-import { Star, MapPin, BadgeCheck, Clock, Briefcase, Loader2 } from 'lucide-react';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { TrustSignals } from '@/components/bidding/TrustSignals';
-import { useVendorProfile } from '@/lib/api/bidding';
-import { formatInr } from '@/lib/utils/money';
-import type { Bid } from '@/types/bidding.types';
+  Star, ShieldCheck, MapPin, Briefcase, Clock,
+  CheckCircle2, ChevronDown, ChevronUp,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { VendorProfile } from '@/types/bidding.types';
 
-interface VendorProfileCardProps {
-  bid: Bid;
-  open: boolean;
-  onClose: () => void;
-  onSelect: (bid: Bid) => void;
-  isSelecting?: boolean;
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+function StarRating({ score, max = 5 }: { score: number; max?: number }) {
+  return (
+    <div className="flex items-center gap-0.5" aria-label={`${score} out of ${max} stars`}>
+      {Array.from({ length: max }).map((_, i) => (
+        <Star
+          key={i}
+          className={cn(
+            'h-3.5 w-3.5',
+            i < Math.round(score)
+              ? 'fill-amber-400 text-amber-400'
+              : 'fill-muted text-muted',
+          )}
+          aria-hidden="true"
+        />
+      ))}
+    </div>
+  );
 }
 
-const MATERIAL_LABELS: Record<string, string> = {
-  ECONOMY: 'Economy',
-  STANDARD: 'Standard',
-  PREMIUM: 'Premium',
-  LUXURY: 'Luxury',
-};
+function TrustBadge({ label, icon: Icon }: { label: string; icon: React.ElementType }) {
+  return (
+    <div className="flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 dark:border-green-900 dark:bg-green-950">
+      <Icon className="h-3.5 w-3.5 text-green-600 dark:text-green-400" aria-hidden="true" />
+      <span className="text-xs font-medium text-green-700 dark:text-green-300">{label}</span>
+    </div>
+  );
+}
 
-const MATERIAL_COLORS: Record<string, string> = {
-  ECONOMY: 'hsl(0 0% 50%)',
-  STANDARD: 'hsl(217 65% 60%)',
-  PREMIUM: 'hsl(40 45% 55%)',
-  LUXURY: 'hsl(280 60% 65%)',
-};
+// ---------------------------------------------------------------------------
+// Main export
+// ---------------------------------------------------------------------------
 
-export function VendorProfileCard({ bid, open, onClose, onSelect, isSelecting }: VendorProfileCardProps) {
-  const { data: vendor, isLoading } = useVendorProfile(bid.vendorId, false);
+interface VendorProfileCardProps {
+  profile: VendorProfile;
+  anonymousLabel: string;
+  className?: string;
+}
+
+export function VendorProfileCard({ profile, anonymousLabel, className }: VendorProfileCardProps) {
+  const [reviewsExpanded, setReviewsExpanded] = useState(false);
+  const [portfolioExpanded, setPortfolioExpanded] = useState(false);
+
+  const portfolioUrls = profile.portfolioUrls ?? [];
+  const reviews = profile.recentReviews ?? [];
+  const rating = profile.averageRating ?? profile.rating ?? 0;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="font-serif text-xl">
-            {bid.anonymousLabel} — Vendor Profile
-          </DialogTitle>
-        </DialogHeader>
-
-        {isLoading ? (
-          <div className="space-y-4 py-4">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-16 w-16 rounded-2xl" />
-              <div className="space-y-2 flex-1">
-                <Skeleton className="h-4 w-1/3" />
-                <Skeleton className="h-3 w-1/2" />
-              </div>
+    <div className={cn('space-y-5', className)}>
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-start gap-4">
+        {/* Avatar placeholder — no real photo to preserve anonymity */}
+        <div
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl font-serif text-xl font-bold"
+          style={{ background: 'var(--gold-gradient)', color: 'hsl(0 0% 4%)' }}
+          aria-hidden="true"
+        >
+          {anonymousLabel.slice(-1)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-serif text-lg font-semibold text-foreground">{anonymousLabel}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="h-3 w-3" aria-hidden="true" />
+              {profile.city}
             </div>
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <div className="grid grid-cols-3 gap-3">
-              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
-            </div>
-          </div>
-        ) : vendor ? (
-          <div className="space-y-5 py-2">
-            {/* Header — anonymized */}
-            <div className="flex items-start gap-4">
-              <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-2xl font-bold text-accent font-serif">
-                {bid.anonymousLabel.charAt(0)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-serif text-lg font-semibold text-foreground">
-                    {bid.anonymousLabel}
-                  </h3>
-                  {vendor.isVerified && (
-                    <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                      <BadgeCheck className="h-3 w-3" aria-hidden="true" />
-                      KYC Verified
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-                    {vendor.city}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Briefcase className="h-3.5 w-3.5" aria-hidden="true" />
-                    {vendor.yearsExperience} yrs experience
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                    Responds in ~{vendor.avgResponseHours}h
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Rating + stats */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-xl border border-border bg-card p-3 text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <Star className="h-4 w-4 fill-accent text-accent" aria-hidden="true" />
-                  <span className="font-serif text-xl font-bold text-foreground">{vendor.rating}</span>
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">{vendor.reviewCount} reviews</p>
-              </div>
-              <div className="rounded-xl border border-border bg-card p-3 text-center">
-                <div className="font-serif text-xl font-bold text-foreground">{vendor.completedProjects}</div>
-                <p className="mt-0.5 text-xs text-muted-foreground">Projects done</p>
-              </div>
-              <div className="rounded-xl border border-border bg-card p-3 text-center">
-                <div
-                  className="font-serif text-base font-bold"
-                  style={{ color: MATERIAL_COLORS[bid.materialLevel] }}
-                >
-                  {MATERIAL_LABELS[bid.materialLevel]}
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">Material level</p>
-              </div>
-            </div>
-
-            {/* Bio */}
-            <div>
-              <h4 className="mb-2 text-sm font-semibold text-foreground">About</h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">{vendor.bio}</p>
-            </div>
-
-            {/* Categories */}
-            <div>
-              <h4 className="mb-2 text-sm font-semibold text-foreground">Specialisations</h4>
-              <div className="flex flex-wrap gap-2">
-                {vendor.categories.map((cat) => (
-                  <span
-                    key={cat}
-                    className="rounded-full border border-accent/20 bg-accent/5 px-3 py-1 text-xs font-medium text-accent"
-                  >
-                    {cat}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Portfolio */}
-            {vendor.portfolioItems.length > 0 && (
-              <div>
-                <h4 className="mb-3 text-sm font-semibold text-foreground">Portfolio</h4>
-                <div className="grid grid-cols-3 gap-2">
-                  {vendor.portfolioItems.map((item) => (
-                    <div key={item.id} className="group relative aspect-square overflow-hidden rounded-xl">
-                      <Image
-                        src={item.imageUrl}
-                        alt={item.caption}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-200 flex items-end p-2">
-                        <p className="text-[10px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 leading-tight">
-                          {item.caption}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {profile.yearsExperience > 0 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" aria-hidden="true" />
+                {profile.yearsExperience}y experience
               </div>
             )}
-
-            {/* Bid details */}
-            <div className="rounded-xl border border-border bg-card p-4">
-              <h4 className="mb-3 text-sm font-semibold text-foreground">Bid Details</h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground">Quote</p>
-                  <p className="font-semibold text-foreground">{formatInr(bid.quotePaise)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Timeline</p>
-                  <p className="font-semibold text-foreground">{bid.timelineWeeks} weeks</p>
-                </div>
-              </div>
-              {bid.scopeAssumptions && (
-                <div className="mt-3">
-                  <p className="text-xs text-muted-foreground mb-1">Scope Assumptions</p>
-                  <p className="text-sm text-foreground/80 leading-relaxed">{bid.scopeAssumptions}</p>
-                </div>
-              )}
-              {bid.notes && (
-                <div className="mt-3">
-                  <p className="text-xs text-muted-foreground mb-1">Vendor Notes</p>
-                  <p className="text-sm text-foreground/80 leading-relaxed italic">&ldquo;{bid.notes}&rdquo;</p>
-                </div>
-              )}
-            </div>
-
-            {/* Trust signals */}
-            <TrustSignals compact />
-
-            {/* Select CTA */}
-            <Button
-              onClick={() => onSelect(bid)}
-              disabled={isSelecting}
-              className="w-full gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
-            >
-              {isSelecting ? (
-                <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Selecting vendor…</>
-              ) : (
-                'Select This Vendor'
-              )}
-            </Button>
-            <p className="text-center text-xs text-muted-foreground">
-              Vendor identity will be revealed after selection. This action cannot be undone.
-            </p>
           </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
+          {/* Trust badges */}
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {profile.isVerified && (
+              <TrustBadge label="KYC Verified" icon={ShieldCheck} />
+            )}
+            {(profile.totalProjects ?? profile.completedProjects ?? 0) > 0 && (
+              <TrustBadge
+                label={`${profile.totalProjects ?? profile.completedProjects} projects`}
+                icon={CheckCircle2}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Rating ─────────────────────────────────────────────────────── */}
+      {rating > 0 && (
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3">
+          <StarRating score={rating} />
+          <span className="text-sm font-semibold text-foreground">{rating.toFixed(1)}</span>
+          <span className="text-xs text-muted-foreground">
+            ({reviews.length > 0 ? `${reviews.length} recent review${reviews.length !== 1 ? 's' : ''}` : 'no reviews yet'})
+          </span>
+        </div>
+      )}
+
+      {/* ── Categories / Specialisations ───────────────────────────────── */}
+      {profile.categories?.length > 0 && (
+        <div>
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <Briefcase className="h-3 w-3" aria-hidden="true" />
+            Specialisations
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {profile.categories.map((cat) => (
+              <span
+                key={cat}
+                className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent"
+              >
+                {cat}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Service Areas ──────────────────────────────────────────────── */}
+      {profile.serviceAreas?.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Service Areas
+          </p>
+          <p className="text-sm text-foreground">{profile.serviceAreas.join(', ')}</p>
+        </div>
+      )}
+
+      {/* ── Bio ────────────────────────────────────────────────────────── */}
+      {profile.bio && (
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            About
+          </p>
+          <p className="text-sm leading-relaxed text-foreground">{profile.bio}</p>
+        </div>
+      )}
+
+      {/* ── Portfolio ──────────────────────────────────────────────────── */}
+      {portfolioUrls.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setPortfolioExpanded((v) => !v)}
+            className="mb-2 flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            aria-expanded={portfolioExpanded}
+          >
+            Portfolio ({portfolioUrls.length} images)
+            {portfolioExpanded
+              ? <ChevronUp className="h-3.5 w-3.5" />
+              : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+          {portfolioExpanded && (
+            <div className="grid grid-cols-3 gap-2">
+              {portfolioUrls.slice(0, 9).map((url, i) => (
+                <div key={i} className="relative aspect-square overflow-hidden rounded-lg border border-border">
+                  <Image
+                    src={url}
+                    alt={`Portfolio image ${i + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 33vw, 150px"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Reviews ────────────────────────────────────────────────────── */}
+      {reviews.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setReviewsExpanded((v) => !v)}
+            className="mb-2 flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            aria-expanded={reviewsExpanded}
+          >
+            Recent Reviews ({reviews.length})
+            {reviewsExpanded
+              ? <ChevronUp className="h-3.5 w-3.5" />
+              : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+          {reviewsExpanded && (
+            <div className="space-y-2">
+              {reviews.map((review, i) => (
+                <div key={i} className="rounded-xl border border-border bg-muted/20 px-4 py-3">
+                  <div className="mb-1 flex items-center gap-2">
+                    <StarRating score={review.score} />
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(review.date).toLocaleDateString('en-IN', {
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                  {review.comment && (
+                    <p className="text-sm text-foreground">{review.comment}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Platform trust signals ─────────────────────────────────────── */}
+      {profile.platformTrustSignals?.length > 0 && (
+        <div className="rounded-xl border border-border bg-muted/20 px-4 py-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Platform Guarantees
+          </p>
+          <ul className="space-y-1.5">
+            {profile.platformTrustSignals.map((signal) => (
+              <li key={signal} className="flex items-start gap-2 text-xs text-foreground">
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-500" aria-hidden="true" />
+                {signal}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }

@@ -45,11 +45,11 @@ export function Step6Budget() {
   const [error, setError] = useState<string | null>(null);
 
   const handleContinue = () => {
-    if (state.budgetMin <= 0 || state.budgetMax <= 0) {
-      setError('Please enter valid budget amounts.');
+    if (state.budgetMax <= 0) {
+      setError('Please enter a maximum budget.');
       return;
     }
-    if (state.budgetMin >= state.budgetMax) {
+    if (state.budgetMin > 0 && state.budgetMin >= state.budgetMax) {
       setError('Maximum budget must be greater than minimum budget.');
       return;
     }
@@ -80,7 +80,7 @@ export function Step6Budget() {
                 id="budget-min"
                 type="number"
                 inputMode="numeric"
-                min={10000}
+                min={0}
                 step={10000}
                 value={state.budgetMin || ''}
                 onChange={(e) =>
@@ -93,7 +93,7 @@ export function Step6Budget() {
                     },
                   })
                 }
-                placeholder="500000"
+                placeholder="0 (no minimum)"
               />
               {state.budgetMin > 0 && (
                 <p className="mt-0.5 text-xs text-muted-foreground">{formatLakhs(state.budgetMin)}</p>
@@ -107,7 +107,7 @@ export function Step6Budget() {
                 id="budget-max"
                 type="number"
                 inputMode="numeric"
-                min={10000}
+                min={0}
                 step={10000}
                 value={state.budgetMax || ''}
                 onChange={(e) =>
@@ -120,7 +120,7 @@ export function Step6Budget() {
                     },
                   })
                 }
-                placeholder="2000000"
+                placeholder="Any"
               />
               {state.budgetMax > 0 && (
                 <p className="mt-0.5 text-xs text-muted-foreground">{formatLakhs(state.budgetMax)}</p>

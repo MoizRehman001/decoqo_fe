@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   FolderOpen,
@@ -182,6 +182,7 @@ function SidebarContent({ variant, onLogout, onNavClick }: SidebarContentProps) 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export function Sidebar({ variant, onLogout }: SidebarProps) {
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Close mobile sidebar on route change
@@ -207,7 +208,7 @@ export function Sidebar({ variant, onLogout }: SidebarProps) {
     if (onLogout) {
       onLogout();
     } else {
-      window.location.href = '/login';
+      router.push('/login');
     }
   };
 

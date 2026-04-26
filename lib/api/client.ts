@@ -1,8 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import type { ApiError } from '@/types/api.types';
 
 /**
  * Minimal interface for the auth store slice consumed by this client.
- * The real store is created in task 1.12 (lib/stores/auth.store.ts).
  * Using a lazy import inside interceptors avoids circular dependency issues
  * and ensures the module is only resolved at runtime (safe for SSR).
  */
@@ -22,7 +22,6 @@ function getAuthStore(): AuthStoreState | null {
     };
     return useAuthStore.getState();
   } catch {
-    // Store module not yet available (e.g. during early bootstrap)
     return null;
   }
 }
@@ -38,7 +37,7 @@ const apiClient = axios.create({
 });
 
 // ---------------------------------------------------------------------------
-// Request interceptor — attach Bearer token when available
+// Request interceptor — attach Bearer token + Idempotency-Key when available
 // ---------------------------------------------------------------------------
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
@@ -55,10 +54,10 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 // ---------------------------------------------------------------------------
 
 apiClient.interceptors.response.use(
-  // Success: unwrap the backend's `{ data: { data: ... } }` envelope
+  // Success: unwrap the backend's `{ success: true, data: T, meta: ... }` envelope
   (response) => response.data?.data ?? response.data,
 
-  // Error: attempt token refresh on 401, otherwise reject with the API error
+  // Error: attempt token refresh on 401, otherwise reject with typed ApiError
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
       const store = getAuthStore();
@@ -80,10 +79,9 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Reject with the structured API error payload when available
-    return Promise.reject(
-      (error.response?.data as { error?: unknown } | undefined)?.error ?? error,
-    );
+    // Reject with the structured ApiError payload when available
+    const apiError = (error.response?.data as { error?: ApiError } | undefined)?.error;
+    return Promise.reject(apiError ?? error);
   },
 );
 

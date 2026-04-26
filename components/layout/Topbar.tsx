@@ -1,6 +1,7 @@
 'use client';
 
 import { LogOut, Settings, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import {
   DropdownMenu,
@@ -15,8 +16,8 @@ import { cn } from '@/lib/utils';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface TopbarUser {
-  name: string;
-  email: string;
+  name?: string;
+  email?: string;
   role: string;
 }
 
@@ -28,8 +29,8 @@ interface TopbarProps {
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
-function UserAvatar({ name }: { name: string }) {
-  const initial = name.trim().charAt(0).toUpperCase();
+function UserAvatar({ name }: { name?: string }) {
+  const initial = (name ?? '').trim().charAt(0).toUpperCase() || '?';
   return (
     <span
       aria-hidden="true"
@@ -47,11 +48,13 @@ function UserAvatar({ name }: { name: string }) {
 // ─── Topbar ───────────────────────────────────────────────────────────────────
 
 export function Topbar({ user, onLogout, title }: TopbarProps) {
+  const router = useRouter();
+
   const handleLogout = () => {
     if (onLogout) {
       onLogout();
     } else {
-      window.location.href = '/login';
+      router.push('/login');
     }
   };
 
@@ -86,7 +89,7 @@ export function Topbar({ user, onLogout, title }: TopbarProps) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                aria-label={`Open user menu for ${user.name}`}
+                aria-label={`Open user menu${user.name ? ` for ${user.name}` : ''}`}
                 className={cn(
                   'flex items-center gap-2 rounded-full ml-1 p-0.5',
                   'transition-all duration-150',
@@ -101,8 +104,8 @@ export function Topbar({ user, onLogout, title }: TopbarProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-semibold text-foreground truncate">{user.name}</span>
-                  <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+                  <span className="text-sm font-semibold text-foreground truncate">{user.name ?? '—'}</span>
+                  <span className="text-xs text-muted-foreground truncate">{user.email ?? ''}</span>
                   <span className="mt-0.5 text-xs font-medium text-primary capitalize">
                     {user.role.toLowerCase()}
                   </span>
@@ -115,7 +118,7 @@ export function Topbar({ user, onLogout, title }: TopbarProps) {
                 className="cursor-pointer gap-2"
                 onSelect={() => {
                   const rolePrefix = user.role.toLowerCase();
-                  window.location.href = `/${rolePrefix}/settings`;
+                  router.push(`/${rolePrefix}/settings`);
                 }}
               >
                 <Settings className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
