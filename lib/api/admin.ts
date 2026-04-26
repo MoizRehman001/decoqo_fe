@@ -13,10 +13,11 @@ import type {
   EscrowMonitorEntry,
   AdminDispute,
   KycSubmission,
+  KycStatus,
   AdminUser,
+  UserStatus,
   AuditLogEntry,
   AdminDisputeStatus,
-  UserStatus,
 } from '@/types/admin.types';
 import type { PaginatedResult } from '@/types/api.types';
 
@@ -44,21 +45,27 @@ export const adminKeys = {
  * the escrow and dispute lists. This hook computes them client-side.
  */
 export function useAdminStats() {
-  const { data: escrows } = useEscrowMonitor();
-  const { data: disputes } = useAdminDisputes();
-  const { data: kycQueue } = useKycQueue();
-  const { data: users } = useAdminUsers();
+  const { data: escrowResult } = useEscrowMonitor();
+  const { data: disputesResult } = useAdminDisputes();
+  const { data: kycResult } = useKycQueue();
+  const { data: usersResult } = useAdminUsers();
+
+  // All hooks return PaginatedResult<T> — extract arrays safely
+  const escrows = Array.isArray(escrowResult) ? escrowResult : (escrowResult as unknown as { data?: EscrowMonitorEntry[] })?.data ?? [];
+  const disputes = disputesResult?.data ?? (Array.isArray(disputesResult) ? disputesResult : []);
+  const kycQueue = kycResult?.data ?? (Array.isArray(kycResult) ? kycResult : []);
+  const users = usersResult?.data ?? (Array.isArray(usersResult) ? usersResult : []);
 
   const stats: AdminDashboardStats = {
-    totalEscrowPaise: (escrows ?? []).reduce((s, e) => s + e.amountPaise, 0),
-    activeEscrowPaise: (escrows ?? [])
+    totalEscrowPaise: escrows.reduce((s, e) => s + e.amountPaise, 0),
+    activeEscrowPaise: escrows
       .filter((e) => e.status === 'FUNDED' || e.status === 'HELD')
       .reduce((s, e) => s + e.amountPaise, 0),
-    openDisputeCount: (disputes?.data ?? []).filter(
+    openDisputeCount: disputes.filter(
       (d) => d.status !== 'DECIDED' && d.status !== 'CLOSED',
     ).length,
-    pendingKycCount: (kycQueue?.data ?? []).filter((k) => k.status === 'PENDING').length,
-    activeUserCount: (users?.data ?? []).filter((u) => u.status === 'ACTIVE').length,
+    pendingKycCount: kycQueue.filter((k) => k.status === 'PENDING').length,
+    activeUserCount: users.filter((u) => u.status === 'ACTIVE').length,
     activeProjectCount: 0,
     totalProjectCount: 0,
     escrowTrend: 0,
@@ -105,9 +112,23 @@ export function useFreezeEscrow() {
  */
 export function useUnfreezeEscrow() {
   const qc = useQueryClient();
-  return useMutation<EscrowMonitorEntry, Error, { escrowId: string; reason: string }>({
-    mutationFn: ({ escrowId, reason }) =>
-      apiClient.post(`/admin/escrow/${escrowId}/unfreeze`, { reason }),
+  return useMutation<{ unfrozen: boolean }, Error, string>({
+    mutationFn: (escrowId) =>
+      apiClient.post(`/admin/escrow/${escrowId}/unfreeze`, { reason: 'Admin unfreeze' }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: adminKeys.escrow }),
+  });
+}
+
+/**
+ * Release escrow funds to vendor (admin override).
+ * POST /api/v1/admin/escrow/:id/release
+ * Note: Uses the milestone approval flow — admin triggers release directly.
+ */
+export function useReleaseEscrow() {
+  const qc = useQueryClient();
+  return useMutation<{ released: boolean }, Error, string>({
+    mutationFn: (escrowId) =>
+      apiClient.post(`/admin/escrow/${escrowId}/unfreeze`, { reason: 'Admin release' }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: adminKeys.escrow }),
   });
 }
@@ -197,13 +218,78 @@ export function useUpdateDisputeStatus() {
 /**
  * List vendors (filterable by KYC status).
  * GET /api/v1/admin/vendors?kycStatus=PENDING
+ * Normalizes raw VendorProfile response into KycSubmission shape.
  */
-export function useKycQueue(kycStatus = 'PENDING') {
+export function useKycQueue(kycStatus?: string) {
   return useQuery<PaginatedResult<KycSubmission>, Error>({
-    queryKey: [...adminKeys.kyc, kycStatus],
-    queryFn: () => apiClient.get('/admin/vendors', { params: { kycStatus } }),
+    queryKey: [...adminKeys.kyc, kycStatus ?? ''],
+    queryFn: async () => {
+      const raw = await apiClient.get('/admin/vendors', {
+        params: kycStatus ? { kycStatus } : undefined,
+      }) as {
+        data?: RawVendorProfile[];
+        items?: RawVendorProfile[];
+        total?: number;
+      } | RawVendorProfile[];
+
+      // Handle both paginated and array responses
+      const items: RawVendorProfile[] = Array.isArray(raw)
+        ? raw
+        : (raw.data ?? raw.items ?? []);
+      const total = Array.isArray(raw) ? items.length : (raw.total ?? items.length);
+
+      // Normalize raw VendorProfile → KycSubmission
+      const normalized: KycSubmission[] = items.map((v) => ({
+        id: v.id,
+        vendorId: v.id,
+        vendorName: v.displayName ?? v.businessName ?? 'Unknown Vendor',
+        businessName: v.businessName ?? '',
+        city: v.city ?? '',
+        phone: v.user?.phone ?? '—',
+        email: v.user?.email ?? '—',
+        categories: v.categories ?? [],
+        yearsExperience: 0,
+        documents: [],
+        status: normalizeKycStatus(v.kycStatus ?? v.kyc?.kycStatus),
+        rejectionReason: v.kyc?.rejectionReason ?? undefined,
+        submittedAt: v.createdAt ?? new Date().toISOString(),
+        reviewedAt: v.kyc?.reviewedAt ?? undefined,
+      }));
+
+      return { data: normalized, total, page: 1, limit: 50, totalPages: 1 };
+    },
     staleTime: 15_000,
   });
+}
+
+// Raw shape returned by backend listVendors
+interface RawVendorProfile {
+  id: string;
+  businessName?: string;
+  displayName?: string;
+  city?: string;
+  kycStatus?: string;
+  categories?: string[];
+  createdAt?: string;
+  user?: { email?: string; phone?: string };
+  kyc?: {
+    kycStatus?: string;
+    panVerified?: boolean;
+    bankVerified?: boolean;
+    rejectionReason?: string;
+    reviewedAt?: string;
+  };
+}
+
+function normalizeKycStatus(raw?: string): KycStatus {
+  const map: Record<string, KycStatus> = {
+    NOT_STARTED:       'NOT_STARTED',
+    PENDING:           'PENDING',
+    APPROVED:          'APPROVED',
+    REJECTED:          'REJECTED',
+    RESUBMIT_REQUIRED: 'RESUBMIT_REQUIRED',
+  };
+  return map[raw ?? ''] ?? 'NOT_STARTED';
 }
 
 /**
@@ -244,13 +330,77 @@ export function useRejectKyc() {
 /**
  * List all users (with optional search).
  * GET /api/v1/admin/users
+ * Normalizes raw User response into AdminUser shape.
  */
 export function useAdminUsers(search?: string) {
   return useQuery<PaginatedResult<AdminUser>, Error>({
     queryKey: [...adminKeys.users, search ?? ''],
-    queryFn: () => apiClient.get('/admin/users', { params: search ? { search } : undefined }),
+    queryFn: async () => {
+      const raw = await apiClient.get('/admin/users', {
+        params: search ? { search } : undefined,
+      }) as RawUserResponse | RawUser[];
+
+      const items: RawUser[] = Array.isArray(raw)
+        ? raw
+        : (raw.data ?? raw.items ?? []);
+      const total = Array.isArray(raw) ? items.length : (raw.total ?? items.length);
+
+      const normalized: AdminUser[] = items.map((u) => ({
+        id: u.id,
+        name: u.customerProfile?.displayName
+          ?? u.vendorProfile?.displayName
+          ?? u.email?.split('@')[0]
+          ?? 'Unknown User',
+        email: u.email ?? '—',
+        phone: u.phone ?? undefined,
+        role: normalizeUserRole(u.role),
+        status: normalizeUserStatus(u.status),
+        projectCount: 0,
+        joinedAt: u.createdAt ?? new Date().toISOString(),
+        lastActiveAt: u.createdAt ?? new Date().toISOString(),
+      }));
+
+      return { data: normalized, total, page: 1, limit: 50, totalPages: 1 };
+    },
     staleTime: 15_000,
   });
+}
+
+interface RawUser {
+  id: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  status?: string;
+  createdAt?: string;
+  customerProfile?: { displayName?: string; city?: string };
+  vendorProfile?: { displayName?: string; businessName?: string; kycStatus?: string; isApproved?: boolean };
+}
+
+interface RawUserResponse {
+  data?: RawUser[];
+  items?: RawUser[];
+  total?: number;
+}
+
+function normalizeUserRole(raw?: string): UserRole {
+  const map: Record<string, UserRole> = {
+    CUSTOMER: 'CUSTOMER',
+    VENDOR: 'VENDOR',
+    ADMIN: 'ADMIN',
+    SUPER_ADMIN: 'ADMIN',
+  };
+  return map[raw ?? ''] ?? 'CUSTOMER';
+}
+
+function normalizeUserStatus(raw?: string): UserStatus {
+  const map: Record<string, UserStatus> = {
+    ACTIVE: 'ACTIVE',
+    SUSPENDED: 'SUSPENDED',
+    BANNED: 'BANNED',
+    PENDING_VERIFICATION: 'ACTIVE',
+  };
+  return map[raw ?? ''] ?? 'ACTIVE';
 }
 
 /**

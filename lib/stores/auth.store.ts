@@ -81,13 +81,23 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   logout: () => {
-    axios
-      .post(`${AUTH_BASE_URL}/auth/logout`, {}, { withCredentials: true })
-      .catch(() => {
-        // Ignore network errors on logout; local state is cleared either way.
-      });
-
+    // Clear local state immediately — don't wait for the API call
+    const token = get().accessToken;
     set({ accessToken: null, user: null, isAuthenticated: false });
+
+    // Fire-and-forget: revoke the refresh token server-side
+    axios
+      .post(
+        `${AUTH_BASE_URL}/auth/logout`,
+        {},
+        {
+          withCredentials: true,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        },
+      )
+      .catch(() => {
+        // Ignore — local state is already cleared
+      });
   },
 
   refreshToken: async (): Promise<boolean> => {

@@ -10,8 +10,7 @@ import { Search, Shield, Activity } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from 'boneyard-js/react';
 import { useAuditLog } from '@/lib/api/admin';
-import { cn } from '@/lib/utils';
-import type { AuditAction } from '@/types/admin.types';
+import type { AuditAction, AuditLogEntry } from '@/types/admin.types';
 
 // ---------------------------------------------------------------------------
 // Action config
@@ -41,7 +40,8 @@ const ACTION_CONFIG: Record<AuditAction, { label: string; color: string }> = {
 export default function AdminAuditPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const { data: entries, isLoading } = useAuditLog(debouncedSearch);
+  const { data: result, isLoading } = useAuditLog(debouncedSearch);
+  const entries = result?.data ?? (Array.isArray(result) ? result : []);
 
   // Simple debounce
   const handleSearch = (v: string) => {
@@ -74,7 +74,7 @@ export default function AdminAuditPage() {
       </div>
 
       {/* Stats row */}
-      {!isLoading && entries && (
+      {!isLoading && entries.length > 0 && (
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Activity className="h-3.5 w-3.5" />
@@ -82,10 +82,10 @@ export default function AdminAuditPage() {
           </span>
           <span className="flex items-center gap-1.5">
             <Shield className="h-3.5 w-3.5" />
-            {entries.filter((e) => e.actorRole === 'ADMIN').length} admin actions
+            {entries.filter((e: AuditLogEntry) => e.actorRole === 'ADMIN').length} admin actions
           </span>
           <span>
-            {entries.filter((e) => e.actorRole === 'SYSTEM').length} system events
+            {entries.filter((e: AuditLogEntry) => e.actorRole === 'SYSTEM').length} system events
           </span>
         </div>
       )}
@@ -110,8 +110,8 @@ export default function AdminAuditPage() {
               </tr>
             </thead>
             <tbody>
-              {(entries ?? []).map((entry) => {
-                const cfg = ACTION_CONFIG[entry.action] ?? { label: entry.action, color: 'hsl(0 0% 50%)' };
+              {entries.map((entry: AuditLogEntry) => {
+                const cfg = ACTION_CONFIG[entry.action as AuditAction] ?? { label: entry.action, color: 'hsl(0 0% 50%)' };
                 const date = new Date(entry.timestamp);
                 return (
                   <tr key={entry.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
@@ -121,7 +121,7 @@ export default function AdminAuditPage() {
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-sm text-foreground">{entry.actor}</p>
-                      <p className="text-[10px] text-muted-foreground/60 capitalize">{entry.actorRole.toLowerCase()}</p>
+                      <p className="text-[10px] text-muted-foreground/60 capitalize">{entry?.actorRole?.toLowerCase()}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -145,7 +145,7 @@ export default function AdminAuditPage() {
                   </tr>
                 );
               })}
-              {(entries ?? []).length === 0 && (
+              {entries.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">
                     No audit entries match your search.

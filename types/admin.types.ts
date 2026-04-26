@@ -6,7 +6,7 @@
 // KYC
 // ---------------------------------------------------------------------------
 
-export type KycStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type KycStatus = 'NOT_STARTED' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'RESUBMIT_REQUIRED';
 
 export interface KycDocument {
   id: string;

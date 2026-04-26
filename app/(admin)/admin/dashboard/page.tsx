@@ -63,13 +63,18 @@ function AdminDashboardFixture() {
 
 export default function AdminDashboardPage() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
-  const { data: disputes } = useAdminDisputes();
-  const { data: kycQueue } = useKycQueue();
+  const { data: disputesResult } = useAdminDisputes();
+  const { data: kycResult } = useKycQueue();
   const { data: escrow } = useEscrowMonitor();
 
-  const openDisputes = disputes?.filter((d) => d.status !== 'DECIDED' && d.status !== 'CLOSED') ?? [];
-  const pendingKyc = kycQueue?.filter((k) => k.status === 'PENDING') ?? [];
-  const activeEscrow = escrow?.filter((e) => e.status === 'FUNDED' || e.status === 'HELD') ?? [];
+  // All three hooks return PaginatedResult<T> — extract the data array safely
+  const disputes = disputesResult?.data ?? (Array.isArray(disputesResult) ? disputesResult : []);
+  const kycQueue = kycResult?.data ?? (Array.isArray(kycResult) ? kycResult : []);
+  const escrowList = Array.isArray(escrow) ? escrow : (escrow as unknown as { data?: typeof escrow })?.data ?? [];
+
+  const openDisputes = disputes.filter((d) => d.status !== 'DECIDED' && d.status !== 'CLOSED');
+  const pendingKyc = kycQueue.filter((k) => k.status === 'PENDING');
+  const activeEscrow = escrowList.filter((e) => e.status === 'FUNDED' || e.status === 'HELD');
   const totalActiveEscrow = activeEscrow.reduce((s, e) => s + e.amountPaise, 0);
 
   return (
@@ -178,19 +183,19 @@ export default function AdminDashboardPage() {
           </div>
           <div className="space-y-3">
             {pendingKyc.slice(0, 4).map((k) => {
-              const daysAgo = Math.floor(
-                (Date.now() - new Date(k.submittedAt).getTime()) / 86_400_000,
-              );
+              const daysAgo = k.submittedAt
+                ? Math.floor((Date.now() - new Date(k.submittedAt).getTime()) / 86_400_000)
+                : 0;
               return (
                 <div
                   key={k.id}
                   className="flex items-center gap-3 rounded-xl border border-border/60 p-3"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/10 font-serif font-bold text-accent text-sm">
-                    {k.vendorName.charAt(0)}
+                    {(k.vendorName ?? 'V').charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{k.vendorName}</p>
+                    <p className="text-sm font-medium text-foreground">{k.vendorName ?? '—'}</p>
                     <p className="text-xs text-muted-foreground">{k.businessName} · {k.city}</p>
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
@@ -219,7 +224,7 @@ export default function AdminDashboardPage() {
           </div>
           <div className="space-y-2">
             {(['FUNDED', 'HELD', 'FROZEN'] as const).map((status) => {
-              const entries = escrow?.filter((e) => e.status === status) ?? [];
+              const entries = escrowList.filter((e) => e.status === status);
               const total = entries.reduce((s, e) => s + e.amountPaise, 0);
               const colors: Record<string, string> = {
                 FUNDED: 'hsl(217 65% 60%)',

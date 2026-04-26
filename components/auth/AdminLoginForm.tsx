@@ -3,25 +3,25 @@
 /**
  * AdminLoginForm — single-step admin authentication.
  *
- * Security model (mirrors backend):
- * - Email + password + TOTP submitted in one atomic request
- * - Prevents username enumeration (no two-step that reveals whether email exists)
- * - TOTP field auto-focuses after password entry
+ * Security model:
+ * - Email + password + TOTP submitted atomically (prevents username enumeration)
  * - Generic error messages — never reveals which field was wrong
- * - Rate limiting enforced server-side (5 attempts / 5 min)
+ * - Dev mode: auto-fills 000000 as TOTP and shows prominent hint
  */
 
 import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Loader2, Shield, Lock, Mail, KeyRound } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Shield, Lock, Mail, KeyRound, Terminal } from 'lucide-react';
 import { z } from 'zod';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { authApi } from '@/lib/api/auth';
 import { cn } from '@/lib/utils';
+
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -34,27 +34,18 @@ const adminLoginSchema = z.object({
     .email('Enter a valid email address'),
   password: z
     .string()
-    .min(1, 'Password is required')
-    .min(12, 'Admin passwords are at least 12 characters'),
+    .min(1, 'Password is required'),
   totpCode: z
     .string()
-    .length(6, 'Enter the 6-digit code from your authenticator app')
-    .regex(/^\d{6}$/, 'Code must contain only digits'),
+    .length(6, 'Enter the 6-digit code')
+    .regex(/^\d{6}$/, 'Code must be 6 digits'),
 });
 
 type AdminLoginFormData = z.infer<typeof adminLoginSchema>;
 
-// ---------------------------------------------------------------------------
-// Field error
-// ---------------------------------------------------------------------------
-
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return (
-    <p role="alert" className="mt-1 text-xs text-destructive">
-      {message}
-    </p>
-  );
+  return <p role="alert" className="mt-1 text-xs text-destructive">{message}</p>;
 }
 
 // ---------------------------------------------------------------------------
@@ -73,7 +64,11 @@ export function AdminLoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<AdminLoginFormData>({
     resolver: zodResolver(adminLoginSchema),
-    defaultValues: { email: '', password: '', totpCode: '' },
+    defaultValues: {
+      email: '',
+      password: '',
+      totpCode: '',
+    },
   });
 
   const { ref: totpFormRef, ...totpRest } = register('totpCode');
@@ -87,18 +82,15 @@ export function AdminLoginForm() {
         totpCode: data.totpCode,
       });
 
-      // Double-check role on client side (defence in depth)
       if (result.user.role !== 'ADMIN' && result.user.role !== 'SUPER_ADMIN') {
-        setServerError('Access denied.');
+        setServerError('Access denied. Admin credentials required.');
         return;
       }
 
-      // Set session role cookie for middleware route protection
       document.cookie = `session_role=${result.user.role}; path=/; SameSite=Strict; Max-Age=14400`;
       router.push('/admin/dashboard');
     } catch (err: unknown) {
       const apiErr = err as { message?: string; statusCode?: number };
-      // Generic message — never reveal which field was wrong
       if (apiErr?.statusCode === 429) {
         setServerError('Too many login attempts. Please wait 5 minutes before trying again.');
       } else {
@@ -124,14 +116,31 @@ export function AdminLoginForm() {
         </p>
       </div>
 
-      {/* Security notice */}
-      <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
-        <Lock className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-        <p className="text-xs text-amber-700 dark:text-amber-300">
-          This portal is for authorised Decoqo administrators only. Unauthorised access attempts are
-          logged and may result in legal action.
-        </p>
-      </div>
+      {/* Dev mode banner */}
+      {IS_DEV && (
+        <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/20">
+          <Terminal className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          <div className="text-xs text-blue-700 dark:text-blue-300">
+            <p className="font-semibold">Dev mode — TOTP auto-filled as 000000</p>
+            <p className="mt-0.5">
+              The current valid TOTP code is also printed to the{' '}
+              <strong>backend server console</strong> each time you submit.
+              Check the terminal running the NestJS server.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Security notice (prod only) */}
+      {!IS_DEV && (
+        <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            This portal is for authorised Decoqo administrators only. Unauthorised access attempts
+            are logged and may result in legal action.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
         {serverError && (
@@ -178,7 +187,6 @@ export function AdminLoginForm() {
               aria-invalid={!!errors.password}
               className="pl-9 pr-10"
               onKeyDown={(e) => {
-                // Auto-advance to TOTP field on Enter
                 if (e.key === 'Enter') {
                   e.preventDefault();
                   totpRef.current?.focus();
@@ -212,7 +220,7 @@ export function AdminLoginForm() {
               pattern="[0-9]*"
               maxLength={6}
               autoComplete="one-time-code"
-              placeholder="000000"
+              placeholder="Enter 6-digit code"
               aria-invalid={!!errors.totpCode}
               className="pl-9 text-center text-lg font-semibold tracking-[0.4em]"
               ref={(el) => {
@@ -223,7 +231,9 @@ export function AdminLoginForm() {
             />
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            6-digit code from your authenticator app (Google Authenticator, Authy, etc.)
+            {IS_DEV
+              ? 'Dev: use 000000 as bypass, or check backend console for the live code'
+              : '6-digit code from Google Authenticator or Authy'}
           </p>
           <FieldError message={errors.totpCode?.message} />
         </div>
@@ -239,12 +249,6 @@ export function AdminLoginForm() {
             <><Shield className="h-4 w-4" aria-hidden="true" /> Access Admin Panel</>
           )}
         </Button>
-
-        {process.env.NODE_ENV === 'development' && (
-          <p className="text-center text-xs text-muted-foreground/60">
-            Dev mode: use <code className="rounded bg-muted px-1 py-0.5">000000</code> as TOTP
-          </p>
-        )}
       </form>
     </div>
   );

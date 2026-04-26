@@ -28,9 +28,11 @@ import type { KycSubmission, KycStatus } from '@/types/admin.types';
 // ---------------------------------------------------------------------------
 
 const STATUS_CONFIG: Record<KycStatus, { label: string; color: string; icon: React.ElementType }> = {
-  PENDING:  { label: 'Pending Review', color: 'hsl(40 45% 55%)',  icon: Clock },
-  APPROVED: { label: 'Approved',       color: 'hsl(142 71% 45%)', icon: BadgeCheck },
-  REJECTED: { label: 'Rejected',       color: 'hsl(0 72% 60%)',   icon: XCircle },
+  NOT_STARTED:       { label: 'Not Started',          color: 'hsl(0 0% 50%)',    icon: Clock },
+  PENDING:           { label: 'Pending Review',        color: 'hsl(40 45% 55%)',  icon: Clock },
+  APPROVED:          { label: 'Approved',              color: 'hsl(142 71% 45%)', icon: BadgeCheck },
+  REJECTED:          { label: 'Rejected',              color: 'hsl(0 72% 60%)',   icon: XCircle },
+  RESUBMIT_REQUIRED: { label: 'Resubmission Required', color: 'hsl(40 45% 55%)',  icon: AlertCircle },
 };
 
 const DOC_TYPE_LABELS: Record<string, string> = {
@@ -54,13 +56,13 @@ function KycCard({ submission }: { submission: KycSubmission }) {
   const [rejectReason, setRejectReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const cfg = STATUS_CONFIG[submission.status];
+  const cfg = STATUS_CONFIG[submission.status] ?? STATUS_CONFIG['NOT_STARTED'];
   const StatusIcon = cfg.icon;
   const isPending = submission.status === 'PENDING';
 
-  const daysAgo = Math.floor(
-    (Date.now() - new Date(submission.submittedAt).getTime()) / 86_400_000,
-  );
+  const daysAgo = submission.submittedAt
+    ? Math.floor((Date.now() - new Date(submission.submittedAt).getTime()) / 86_400_000)
+    : 0;
 
   const handleApprove = async () => {
     setError(null);
@@ -75,7 +77,7 @@ function KycCard({ submission }: { submission: KycSubmission }) {
     if (!rejectReason.trim()) return;
     setError(null);
     try {
-      await rejectMutation.mutateAsync({ kycId: submission.id, reason: rejectReason.trim() });
+      await rejectMutation.mutateAsync({ vendorId: submission.id, reason: rejectReason.trim() });
       setShowRejectDialog(false);
       setRejectReason('');
     } catch (err: unknown) {
@@ -95,12 +97,12 @@ function KycCard({ submission }: { submission: KycSubmission }) {
         >
           {/* Avatar */}
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent/10 font-serif text-lg font-bold text-accent">
-            {submission.vendorName.charAt(0)}
+            {(submission.vendorName ?? 'V').charAt(0)}
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-serif font-semibold text-foreground">{submission.vendorName}</h3>
+              <h3 className="font-serif font-semibold text-foreground">{submission.vendorName ?? 'Unknown Vendor'}</h3>
               <span
                 className="flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
                 style={{ background: `${cfg.color}15`, color: cfg.color }}
@@ -111,8 +113,8 @@ function KycCard({ submission }: { submission: KycSubmission }) {
             </div>
             <p className="text-sm text-muted-foreground">{submission.businessName} · {submission.city}</p>
             <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
-              <span>{submission.yearsExperience} yrs experience</span>
-              <span>{submission.documents.length} documents</span>
+              <span>{submission.yearsExperience ?? 0} yrs experience</span>
+              <span>{(submission.documents ?? []).length} documents</span>
               <span>Submitted {daysAgo === 0 ? 'today' : `${daysAgo}d ago`}</span>
             </div>
           </div>
@@ -141,7 +143,7 @@ function KycCard({ submission }: { submission: KycSubmission }) {
                 Specialisations
               </p>
               <div className="flex flex-wrap gap-2">
-                {submission.categories.map((c) => (
+                {(submission.categories ?? []).map((c) => (
                   <span key={c} className="rounded-full border border-accent/20 bg-accent/5 px-2.5 py-0.5 text-xs font-medium text-accent">
                     {c}
                   </span>
@@ -155,7 +157,7 @@ function KycCard({ submission }: { submission: KycSubmission }) {
                 Documents ({submission.documents.length})
               </p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {submission.documents.map((doc) => (
+                {(submission.documents ?? []).map((doc) => (
                   <div key={doc.id} className="rounded-xl border border-border bg-card overflow-hidden">
                     <div className="relative aspect-video bg-muted">
                       <Image
@@ -268,21 +270,22 @@ function KycQueueFixture() {
 // ---------------------------------------------------------------------------
 
 export default function AdminVendorsPage() {
-  const { data: submissions, isLoading } = useKycQueue();
+  const { data: result, isLoading } = useKycQueue();
+  const submissions: KycSubmission[] = result?.data ?? (Array.isArray(result) ? result as KycSubmission[] : []);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<KycStatus | 'ALL'>('ALL');
 
-  const filtered = (submissions ?? []).filter((s) => {
+  const filtered = submissions.filter((s) => {
     const matchSearch =
       !search.trim() ||
-      s.vendorName.toLowerCase().includes(search.toLowerCase()) ||
-      s.businessName.toLowerCase().includes(search.toLowerCase()) ||
-      s.city.toLowerCase().includes(search.toLowerCase());
+      (s.vendorName ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (s.businessName ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (s.city ?? '').toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'ALL' || s.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  const pendingCount = (submissions ?? []).filter((s) => s.status === 'PENDING').length;
+  const pendingCount = submissions.filter((s) => s.status === 'PENDING').length;
 
   return (
     <div className="space-y-6 animate-page-in">
@@ -304,8 +307,8 @@ export default function AdminVendorsPage() {
             className="pl-9"
           />
         </div>
-        <div className="flex gap-2">
-          {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((s) => (
+        <div className="flex gap-2 flex-wrap">
+          {(['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'RESUBMIT_REQUIRED'] as const).map((s) => (
             <button
               key={s}
               type="button"

@@ -119,17 +119,20 @@ function ActionDialog({ user, action, onClose }: ActionDialogProps) {
 // ---------------------------------------------------------------------------
 
 export default function AdminUsersPage() {
-  const { data: users, isLoading } = useAdminUsers();
+  const { data: result, isLoading } = useAdminUsers();
+  const users: AdminUser[] = result?.data ?? (Array.isArray(result) ? result as AdminUser[] : []);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'ALL'>('ALL');
   const [statusFilter, setStatusFilter] = useState<UserStatus | 'ALL'>('ALL');
   const [actionTarget, setActionTarget] = useState<{ user: AdminUser; action: 'SUSPEND' | 'BAN' | 'REINSTATE' } | null>(null);
 
-  const filtered = (users ?? []).filter((u) => {
+  const filtered = users.filter((u) => {
+    const name = u.name ?? '';
+    const email = u.email ?? '';
     const matchSearch =
       !search.trim() ||
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase());
+      name.toLowerCase().includes(search.toLowerCase()) ||
+      email.toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter === 'ALL' || u.role === roleFilter;
     const matchStatus = statusFilter === 'ALL' || u.status === statusFilter;
     return matchSearch && matchRole && matchStatus;
@@ -204,18 +207,20 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {filtered.map((user) => {
-                const statusCfg = STATUS_CONFIG[user.status];
-                const roleCfg = ROLE_CONFIG[user.role];
-                const lastActive = new Date(user.lastActiveAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                const statusCfg = STATUS_CONFIG[user.status] ?? STATUS_CONFIG['ACTIVE'];
+                const roleCfg = ROLE_CONFIG[user.role] ?? ROLE_CONFIG['CUSTOMER'];
+                const lastActive = user.lastActiveAt
+                  ? new Date(user.lastActiveAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                  : '—';
                 return (
                   <tr key={user.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 font-serif text-xs font-bold text-accent">
-                          {user.name.charAt(0)}
+                          {(user.name ?? 'U').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-foreground">{user.name}</p>
+                          <p className="text-sm font-medium text-foreground">{user.name ?? '—'}</p>
                           {user.suspensionReason && (
                             <p className="text-[10px] text-muted-foreground/60 max-w-[140px] truncate">{user.suspensionReason}</p>
                           )}

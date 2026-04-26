@@ -19,6 +19,7 @@ import {
   Menu,
   X,
   Gem,
+  Percent,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -54,12 +55,15 @@ const NAV_ITEMS: Record<SidebarVariant, NavItem[]> = {
     { label: 'Settings', href: '/vendor/settings', icon: Settings },
   ],
   admin: [
-    { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-    { label: 'Escrow Monitor', href: '/admin/escrow', icon: Wallet },
-    { label: 'Disputes', href: '/admin/disputes', icon: AlertTriangle },
-    { label: 'Vendors', href: '/admin/vendors', icon: Users },
-    { label: 'User Management', href: '/admin/users', icon: UserCog },
-    { label: 'Audit Log', href: '/admin/audit', icon: ScrollText },
+    { label: 'Dashboard',       href: '/admin/dashboard', icon: LayoutDashboard },
+    { label: 'Escrow Monitor',  href: '/admin/escrow',    icon: Wallet },
+    { label: 'Disputes',        href: '/admin/disputes',  icon: AlertTriangle },
+    { label: 'Vendors',         href: '/admin/vendors',   icon: Users },
+    { label: 'User Management', href: '/admin/users',     icon: UserCog },
+    { label: 'Audit Log',       href: '/admin/audit',        icon: ScrollText },
+    { label: 'Commission Rules', href: '/admin/commission',  icon: Percent },
+    { label: 'BOQ PDF Settings', href: '/admin/boq-settings', icon: FileText },
+    { label: 'Settings',        href: '/admin/settings',     icon: Settings },
   ],
 };
 
