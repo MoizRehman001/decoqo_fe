@@ -20,6 +20,7 @@ import {
   X,
   Gem,
   Percent,
+  HardDrive,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -61,9 +62,10 @@ const NAV_ITEMS: Record<SidebarVariant, NavItem[]> = {
     { label: 'Vendors',         href: '/admin/vendors',   icon: Users },
     { label: 'User Management', href: '/admin/users',     icon: UserCog },
     { label: 'Audit Log',       href: '/admin/audit',        icon: ScrollText },
-    { label: 'Commission Rules', href: '/admin/commission',  icon: Percent },
-    { label: 'BOQ PDF Settings', href: '/admin/boq-settings', icon: FileText },
-    { label: 'Settings',        href: '/admin/settings',     icon: Settings },
+    { label: 'Commission Rules', href: '/admin/commission',    icon: Percent },
+    { label: 'BOQ PDF Settings', href: '/admin/boq-settings',  icon: FileText },
+    { label: 'Storage',          href: '/admin/storage',       icon: HardDrive },
+    { label: 'Settings',         href: '/admin/settings',      icon: Settings },
   ],
 };
 
